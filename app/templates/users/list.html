@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Gestión de Usuarios</h2>
+        </div>
+        <div class="col text-end">
+            <a href="{{ url_for('user.add_user') }}" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Agregar Usuario
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Usuario</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Fecha de Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="badge {% if user.is_admin %}bg-primary{% else %}bg-secondary{% endif %}">
+                                    {% if user.is_admin %}Administrador{% else %}Usuario{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ user.created_at.strftime('%d/%m/%Y') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('user.edit_user', user_id=user.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% if not user.is_admin or current_user.id != user.id %}
+                                    <button onclick="confirmarEliminar({{ user.id }})" 
+                                            class="btn btn-sm btn-outline-danger" 
+                                            title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                    {% if current_user.id != user.id %}
+                                    <form action="{{ url_for('user.toggle_admin', user_id=user.id) }}" 
+                                          method="POST" 
+                                          class="d-inline">
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-{% if user.is_admin %}warning{% else %}success{% endif %}" 
+                                                title="{% if user.is_admin %}Quitar admin{% else %}Hacer admin{% endif %}">
+                                            <i class="fas fa-{% if user.is_admin %}user-minus{% else %}user-shield{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmarEliminar(userId) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.href = "{{ url_for('user.delete_user', user_id=0) }}".replace('0', userId);
+        }
+    });
+}
+</script>
+{% endblock %}

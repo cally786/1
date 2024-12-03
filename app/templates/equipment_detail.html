@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <h2>{{ equipment.name }}</h2>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Detalles del Equipo</h5>
+                    <p class="card-text"><strong>Descripción:</strong> {{ equipment.description }}</p>
+                    <p class="card-text"><strong>Cantidad Disponible:</strong> {{ equipment.available_quantity }}</p>
+                    <p class="card-text"><strong>Precio Unitario:</strong> ${{ "%.2f"|format(equipment.unit_price) }}</p>
+                    <p class="card-text"><strong>Estado:</strong> {{ equipment.status }}</p>
+                    <p class="card-text"><strong>Propietario:</strong> {{ equipment.creator.username }}</p>
+                </div>
+            </div>
+
+            {% if equipment.status == 'Pre-Publicado' %}
+                <div class="alert alert-warning">
+                    {% if current_user.id == equipment.creator_id %}
+                        <h5>Cambio de Precio Pendiente</h5>
+                        <p>El administrador ha propuesto un cambio en el precio de este producto.</p>
+                        <a href="{{ url_for('price_negotiation.price_change_form', equipment_id=equipment.id) }}" class="btn btn-primary">
+                            Ver Detalles y Responder
+                        </a>
+                    {% else %}
+                        <h5>Negociación en Proceso</h5>
+                        <p>Este producto está en proceso de negociación de precio con el creador.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if current_user.is_authenticated and not current_user.is_admin and current_user.id != equipment.creator_id %}
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">Reservar Equipo</h5>
+                    <form action="{{ url_for('reservation.reserve_equipment', equipment_id=equipment.id) }}" method="post">
+                        <div class="form-group">
+                            <label for="quantity">Cantidad a reservar:</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" max="{{ equipment.available_quantity }}" required>
+                        </div>
+                        <div class="form-group mt-2">
+                            <p><strong>Precio por unidad:</strong> ${{ "%.2f"|format(equipment.unit_price) }}</p>
+                            <p><strong>Precio total:</strong> <span id="total-price">$0.00</span></p>
+                        </div>
+                        <button type="submit" class="btn btn-primary mt-3">Reservar</button>
+                    </form>
+                </div>
+            </div>
+            {% elif current_user.is_admin %}
+            <div class="alert alert-info mt-4">
+                Los administradores no pueden realizar reservas.
+            </div>
+            {% elif current_user.id == equipment.creator_id %}
+            <div class="alert alert-info mt-4">
+                No puedes reservar tu propio equipo.
+            </div>
+            {% elif not current_user.is_authenticated %}
+            <div class="alert alert-info mt-4">
+                Debes iniciar sesión para realizar una reserva.
+            </div>
+            {% endif %}
+        </div>
+        <div class="col-md-4">
+            {% if current_user.id == equipment.creator_id or current_user.is_admin %}
+                <a href="{{ url_for('equipment.edit_equipment', equipment_id=equipment.id) }}" class="btn btn-primary">Editar</a>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    Eliminar
+                </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                ¿Estás seguro de que deseas eliminar este equipo?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('equipment.delete_equipment', equipment_id=equipment.id) }}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('quantity').addEventListener('input', function() {
+    const quantity = this.value;
+    const unitPrice = {{ equipment.unit_price }};
+    const totalPrice = quantity * unitPrice;
+    document.getElementById('total-price').textContent = '$' + totalPrice.toFixed(2);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Chats Pendientes</h2>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if chats %}
+                        <div class="list-group">
+                            {% for chat in chats %}
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <div>
+                                            <h5 class="mb-1">{{ chat.title }}</h5>
+                                            <p class="mb-1">Usuario: {{ chat.user.username }}</p>
+                                            <small class="text-muted">
+                                                Creado: {{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                            </small>
+                                        </div>
+                                        <button class="btn btn-primary accept-chat" 
+                                                data-chat-id="{{ chat.id }}">
+                                            Aceptar Chat
+                                        </button>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="alert alert-info">
+                            No hay chats pendientes en este momento.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.accept-chat').forEach(button => {
+    button.addEventListener('click', async function() {
+        const chatId = this.dataset.chatId;
+        try {
+            const response = await fetch(`/chats/${chatId}/accept`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            const data = await response.json();
+            
+            if (data.success) {
+                // Redirigir al chat
+                window.location.href = `/chats/${chatId}/messages`;
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error al aceptar el chat');
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,855 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
+from sqlalchemy import func
+
+# Configuración de la aplicación
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'tu_clave_secreta_aqui'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///inventory.db'  # Base de datos persistente
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'uploads')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+
+# Asegurarse de que el directorio de uploads exista
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Inicializar la base de datos
+db = SQLAlchemy(app)
+
+# Configurar el sistema de login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(120), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relaciones
+    notifications = db.relationship('Notification', backref='recipient', lazy=True,
+                                  foreign_keys='Notification.recipient_id')
+    equipment_items = db.relationship('Equipment', back_populates='creator')
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class Equipment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    company = db.Column(db.String(100))
+    model = db.Column(db.String(100))
+    category = db.Column(db.String(50))
+    serial_number = db.Column(db.String(50))
+    quantity = db.Column(db.Integer, nullable=False)
+    available_quantity = db.Column(db.Integer)
+    unit_price = db.Column(db.Float, nullable=False)
+    location = db.Column(db.String(200))
+    status = db.Column(db.String(20), default='Pendiente')
+    notes = db.Column(db.Text)
+    image_filename = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    published_at = db.Column(db.DateTime)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    # Relaciones
+    transactions = db.relationship('Transaction', back_populates='equipment')
+    creator = db.relationship('User', back_populates='equipment_items')
+
+    def __init__(self, **kwargs):
+        super(Equipment, self).__init__(**kwargs)
+        if self.available_quantity is None:
+            self.available_quantity = self.quantity
+
+    @property
+    def total_price(self):
+        if self.unit_price is not None and self.quantity is not None:
+            return self.unit_price * self.quantity
+        return None
+
+class Transaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    equipment_id = db.Column(db.Integer, db.ForeignKey('equipment.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    seller_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    unit_price = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    status = db.Column(db.String(20), nullable=False, default='Pendiente')
+    
+    # Relaciones
+    equipment = db.relationship('Equipment', back_populates='transactions')
+    buyer = db.relationship('User', foreign_keys=[buyer_id])
+    seller = db.relationship('User', foreign_keys=[seller_id])
+    
+    @property
+    def total_price(self):
+        return self.quantity * self.unit_price
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    message = db.Column(db.String(500), nullable=False)
+    type = db.Column(db.String(50), nullable=False)
+    read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    transaction_id = db.Column(db.Integer, db.ForeignKey('transaction.id'))
+    
+    # La relación con User se maneja a través del backref en el modelo User
+    # La relación con Transaction se maneja a través del backref en el modelo Transaction
+
+def requires_admin(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated or not current_user.is_admin:
+            flash('No tienes permiso para acceder a esta página.', 'danger')
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
+
+def url_params(**updates):
+    """Helper function to update URL parameters while preserving existing ones"""
+    args = request.args.copy()
+    for key, value in updates.items():
+        if value is not None:
+            args[key] = value
+        elif key in args:
+            del args[key]
+    return url_for(request.endpoint, **args)
+
+app.jinja_env.globals['url_params'] = url_params
+
+@app.route('/')
+@login_required
+def index():
+    # For admin users, show all equipment except rejected ones
+    if current_user.is_admin:
+        equipment_list = Equipment.query.filter(
+            Equipment.status != 'Rechazado'
+        ).order_by(Equipment.created_at.desc()).all()
+        
+        # Calculate stats for non-rejected equipment
+        total = Equipment.query.filter(Equipment.status != 'Rechazado').count()
+        pending = Equipment.query.filter_by(status='En revisión').count()
+        reviewed = Equipment.query.filter_by(status='Revisado').count()
+        published = Equipment.query.filter_by(status='Publicado').count()
+        
+        stats = {
+            'total': total,
+            'pending': pending,
+            'reviewed': reviewed,
+            'published': published
+        }
+    else:
+        # For regular users, show only their equipment
+        equipment_list = Equipment.query.filter_by(
+            creator_id=current_user.id
+        ).order_by(Equipment.created_at.desc()).all()
+        
+        # Calculate stats for user's equipment
+        total = Equipment.query.filter_by(creator_id=current_user.id).count()
+        pending = Equipment.query.filter_by(creator_id=current_user.id, status='En revisión').count()
+        reviewed = Equipment.query.filter_by(creator_id=current_user.id, status='Revisado').count()
+        published = Equipment.query.filter_by(creator_id=current_user.id, status='Publicado').count()
+        
+        stats = {
+            'total': total,
+            'pending': pending,
+            'reviewed': reviewed,
+            'published': published
+        }
+    
+    return render_template('index.html', 
+                         equipment_list=equipment_list,
+                         stats=stats,
+                         title='Panel de Control')
+
+@app.route('/all-equipment')
+@login_required
+def all_equipment_redirect():
+    return redirect(url_for('all_equipment'))
+
+@app.route('/all_equipment')
+@login_required
+def all_equipment():
+    query = Equipment.query
+
+    # Get filter parameters (now supporting multiple values)
+    filters = {}
+    for field in ['name', 'company', 'location', 'category', 'creator', 'status']:
+        values = request.args.getlist(field)
+        if values and values[0]:  # Check if there are any non-empty values
+            filters[field] = values
+
+    # Apply filters
+    for field, values in filters.items():
+        if field == 'creator':
+            creator_ids = [user.id for user in User.query.filter(User.username.in_(values)).all()]
+            query = query.filter(Equipment.creator_id.in_(creator_ids))
+        else:
+            query = query.filter(getattr(Equipment, field).in_(values))
+
+    # Get equipment list
+    if not current_user.is_admin:
+        query = query.filter_by(creator_id=current_user.id)
+    
+    equipment_list = query.order_by(Equipment.created_at.desc()).all()
+    return render_template('all_equipment.html', equipment_list=equipment_list)
+
+@app.route('/get-suggestions')
+@login_required
+def get_suggestions():
+    field = request.args.get('field')
+    query = request.args.get('q', '')
+    
+    if not field or not query:
+        return jsonify([])
+    
+    # Mapeo de campos a columnas de la base de datos
+    field_map = {
+        'name': Equipment.name,
+        'company': Equipment.company,
+        'location': Equipment.location,
+        'category': Equipment.category,
+        'model': Equipment.model,
+        'serial_number': Equipment.serial_number
+    }
+    
+    if field not in field_map:
+        return jsonify([])
+    
+    # Realizar la búsqueda
+    results = db.session.query(field_map[field])\
+        .filter(field_map[field].ilike(f'%{query}%'))\
+        .distinct()\
+        .limit(10)\
+        .all()
+    
+    # Extraer los valores únicos
+    suggestions = [row[0] for row in results if row[0]]
+    
+    return jsonify(suggestions)
+
+@app.route('/get_distinct_values')
+@login_required
+def get_distinct_values():
+    field = request.args.get('field')
+    if not field:
+        return jsonify({'error': 'Field parameter is required'}), 400
+
+    valid_fields = ['name', 'company', 'location', 'category', 'creator']
+    if field not in valid_fields:
+        return jsonify({'error': 'Invalid field'}), 400
+
+    query = None
+    if field == 'creator':
+        # Get distinct usernames for creators
+        if current_user.is_admin:
+            query = db.session.query(User.username.distinct()).all()
+        else:
+            query = db.session.query(User.username.distinct()).filter(User.id == current_user.id).all()
+    else:
+        # Get distinct values for other fields
+        if current_user.is_admin:
+            query = db.session.query(getattr(Equipment, field).distinct()).all()
+        else:
+            query = db.session.query(getattr(Equipment, field).distinct()).filter_by(creator_id=current_user.id).all()
+
+    values = [value[0] for value in query if value[0]]  # Filter out None values
+    return jsonify({'values': sorted(values)})
+
+@app.route('/in-review')
+@login_required
+@requires_admin
+def in_review_equipment():
+    equipment_list = Equipment.query.filter_by(status='En revisión').all()
+    return render_template('index.html', 
+                         equipment_list=equipment_list,
+                         status_colors={'En revisión': 'warning'})
+
+@app.route('/reviewed')
+@login_required
+@requires_admin
+def reviewed_equipment():
+    equipment_list = Equipment.query.filter_by(status='Revisado').all()
+    return render_template('index.html', 
+                         equipment_list=equipment_list,
+                         status_colors={'Revisado': 'info'})
+
+@app.route('/rejected')
+@login_required
+@requires_admin
+def rejected_equipment():
+    # Get only rejected equipment
+    equipment_list = Equipment.query.filter_by(status='Rechazado').order_by(Equipment.created_at.desc()).all()
+    
+    # For rejected view, only show the count of rejected items
+    rejected_count = len(equipment_list)
+    stats = {
+        'total': rejected_count,  # Total is the same as rejected count
+        'pending': 0,  # Hide other stats
+        'reviewed': 0,
+        'published': 0,
+        'rejected': rejected_count  # Add rejected count
+    }
+    
+    return render_template('index.html', 
+                         equipment_list=equipment_list,
+                         stats=stats,
+                         title='Equipos Rechazados')
+
+@app.route('/published')
+@login_required
+def published_equipment():
+    equipment_list = Equipment.query.filter_by(status='Publicado').all()
+    return render_template('index.html', 
+                         equipment_list=equipment_list,
+                         status_colors={'Publicado': 'success'},
+                         title='Equipos Publicados')
+
+@app.route('/my-equipment')
+@login_required
+def my_equipment():
+    equipment_list = Equipment.query.filter_by(creator_id=current_user.id).all()
+    status_colors = {
+        'En revisión': 'warning',
+        'Revisado': 'info',
+        'Publicado': 'success',
+        'Rechazado': 'danger'
+    }
+    return render_template('index.html', 
+                         equipment_list=equipment_list,
+                         status_colors=status_colors,
+                         title='Mis Equipos')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+        
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Usuario o contraseña incorrectos', 'danger')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    flash('Has cerrado sesión exitosamente', 'success')
+    return redirect(url_for('login'))
+
+@app.route('/add-equipment', methods=['GET', 'POST'])
+@login_required
+def add_equipment():
+    if request.method == 'POST':
+        try:
+            # Verificar si ya existe un equipo con la misma categoría y número de serie
+            existing_equipment = Equipment.query.filter_by(
+                category=request.form['category'],
+                serial_number=request.form['serial_number']
+            ).first()
+            
+            if existing_equipment:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return jsonify({
+                        'success': False,
+                        'message': 'Ya existe un equipo con la misma categoría y número de serie.'
+                    })
+                flash('Ya existe un equipo con la misma categoría y número de serie.', 'danger')
+                return render_template('add_equipment.html')
+            
+            # Crear nuevo equipo
+            equipment = Equipment(
+                company=request.form['company'],
+                name=request.form['name'],
+                model=request.form['model'],
+                category=request.form['category'],
+                serial_number=request.form['serial_number'],
+                quantity=int(request.form['quantity']),
+                unit_price=float(request.form['unit_price']),
+                location=request.form['location'],
+                notes=request.form['notes'],
+                creator_id=current_user.id
+            )
+            
+            # Manejar el estado según el rol del usuario
+            if current_user.is_admin:
+                equipment.status = request.form.get('status', 'En revisión')
+                if equipment.status == 'Publicado':
+                    equipment.published_at = datetime.utcnow()
+            else:
+                equipment.status = 'En revisión'
+            
+            # Manejar la imagen si se proporciona
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    equipment.image_filename = filename
+            
+            db.session.add(equipment)
+            db.session.commit()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'message': 'Equipo agregado exitosamente',
+                    'redirect': url_for('index')
+                })
+            
+            flash('Equipo agregado exitosamente', 'success')
+            return redirect(url_for('index'))
+            
+        except Exception as e:
+            db.session.rollback()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False,
+                    'message': 'Ha ocurrido un error al procesar la solicitud: ' + str(e)
+                })
+            flash('Ha ocurrido un error al procesar la solicitud.', 'danger')
+            return render_template('add_equipment.html')
+    
+    return render_template('add_equipment.html')
+
+@app.route('/equipment/<int:equipment_id>')
+@login_required
+def equipment_detail(equipment_id):
+    equipment = Equipment.query.get_or_404(equipment_id)
+    return render_template('equipment_detail.html', equipment=equipment)
+
+@app.route('/equipment/<int:equipment_id>/edit', methods=['GET', 'POST'])
+@login_required
+@requires_admin
+def edit_equipment(equipment_id):
+    equipment = db.session.get(Equipment, equipment_id)
+    if not equipment:
+        flash('Equipo no encontrado.', 'danger')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        try:
+            # Obtener la cantidad anterior y la nueva
+            old_quantity = equipment.quantity
+            new_quantity = int(request.form.get('quantity', 0))
+            
+            # Calcular la diferencia
+            quantity_difference = new_quantity - old_quantity
+            
+            # Actualizar los datos del equipo
+            equipment.name = request.form.get('name')
+            equipment.company = request.form.get('company')
+            equipment.model = request.form.get('model')
+            equipment.category = request.form.get('category')
+            equipment.serial_number = request.form.get('serial_number')
+            equipment.quantity = new_quantity
+            equipment.unit_price = float(request.form.get('unit_price', 0))
+            equipment.location = request.form.get('location')
+            equipment.notes = request.form.get('notes', '')
+            
+            # Actualizar la cantidad disponible sumando la diferencia
+            if equipment.available_quantity is None:
+                equipment.available_quantity = new_quantity
+            else:
+                equipment.available_quantity = max(0, equipment.available_quantity + quantity_difference)
+            
+            # Actualizar el estado basado en la cantidad disponible
+            if equipment.available_quantity == 0 and equipment.status == 'Publicado':
+                equipment.status = 'Acabado'
+                # Notificar al vendedor
+                notification = Notification(
+                    recipient_id=equipment.creator_id,
+                    message=f'Tu producto "{equipment.name}" se ha marcado como agotado.',
+                    type='stock_empty'
+                )
+                db.session.add(notification)
+            elif equipment.available_quantity > 0 and equipment.status == 'Acabado':
+                equipment.status = 'Publicado'
+                # Notificar al vendedor
+                notification = Notification(
+                    recipient_id=equipment.creator_id,
+                    message=f'Tu producto "{equipment.name}" está nuevamente disponible con {equipment.available_quantity} unidades.',
+                    type='stock_available'
+                )
+                db.session.add(notification)
+            
+            # Manejar el estado si se cambia manualmente
+            if 'status' in request.form:
+                new_status = request.form['status']
+                if new_status != equipment.status:
+                    equipment.status = new_status
+                    if new_status == 'Publicado':
+                        equipment.published_at = datetime.utcnow()
+            
+            # Manejar la imagen si se proporciona una nueva
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename and allowed_file(file.filename):
+                    if equipment.image_filename:
+                        try:
+                            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], equipment.image_filename))
+                        except:
+                            pass
+                    filename = secure_filename(file.filename)
+                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                    equipment.image_filename = filename
+
+            db.session.commit()
+            flash('Equipo actualizado exitosamente.', 'success')
+            return redirect(url_for('equipment_detail', equipment_id=equipment.id))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash('Error al actualizar el equipo. Por favor, intente de nuevo.', 'danger')
+            print(f"Error: {str(e)}")
+            return render_template('edit_equipment.html', equipment=equipment)
+    
+    return render_template('edit_equipment.html', equipment=equipment)
+
+@app.route('/equipment/<int:equipment_id>/delete')
+@login_required
+def delete_equipment(equipment_id):
+    equipment = Equipment.query.get_or_404(equipment_id)
+    
+    # Verificar si el usuario tiene permiso para eliminar
+    if not current_user.is_admin and equipment.creator_id != current_user.id:
+        flash('No tienes permiso para eliminar este equipo.', 'danger')
+        return redirect(url_for('all_equipment'))
+    
+    # Eliminar la imagen si existe
+    if equipment.image_filename:
+        try:
+            os.remove(os.path.join(app.config['UPLOAD_FOLDER'], equipment.image_filename))
+        except:
+            pass
+    
+    db.session.delete(equipment)
+    db.session.commit()
+    flash('Equipo eliminado exitosamente.', 'success')
+    return redirect(url_for('all_equipment'))
+
+@app.route('/manage-users')
+@login_required
+@requires_admin
+def manage_users():
+    users = User.query.all()
+    return render_template('manage_users.html', users=users)
+
+@app.route('/add-user', methods=['GET', 'POST'])
+@login_required
+@requires_admin
+def add_user():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        is_admin = request.form.get('is_admin') == 'on'
+        
+        if not username or not password:
+            flash('Por favor complete todos los campos.', 'danger')
+            return redirect(url_for('add_user'))
+        
+        if User.query.filter_by(username=username).first():
+            flash('El nombre de usuario ya existe.', 'danger')
+            return redirect(url_for('add_user'))
+        
+        try:
+            new_user = User(username=username, is_admin=is_admin)
+            new_user.set_password(password)
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Usuario creado exitosamente.', 'success')
+            return redirect(url_for('manage_users'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al crear el usuario: {str(e)}', 'danger')
+            return redirect(url_for('add_user'))
+    
+    return render_template('add_user.html')
+
+@app.route('/edit-user/<int:id>', methods=['GET', 'POST'])
+@login_required
+@requires_admin
+def edit_user(id):
+    user = User.query.get_or_404(id)
+    
+    if user.username == 'admin':
+        flash('No se puede editar el usuario admin.', 'danger')
+        return redirect(url_for('manage_users'))
+    
+    if request.method == 'POST':
+        new_password = request.form.get('password')
+        is_admin = request.form.get('is_admin') == 'on'
+        
+        try:
+            # Actualizar contraseña solo si se proporcionó una nueva
+            if new_password:
+                user.set_password(new_password)
+            
+            user.is_admin = is_admin
+            db.session.commit()
+            flash('Usuario actualizado exitosamente.', 'success')
+            return redirect(url_for('manage_users'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al actualizar el usuario: {str(e)}', 'danger')
+    
+    return render_template('edit_user.html', user=user)
+
+@app.route('/delete-user/<int:id>')
+@login_required
+@requires_admin
+def delete_user(id):
+    if current_user.id == id:
+        flash('No puedes eliminar tu propio usuario.', 'danger')
+        return redirect(url_for('manage_users'))
+    
+    user = User.query.get_or_404(id)
+    
+    if user.username == 'admin':
+        flash('No se puede eliminar el usuario admin.', 'danger')
+        return redirect(url_for('manage_users'))
+    
+    try:
+        db.session.delete(user)
+        db.session.commit()
+        flash('Usuario eliminado exitosamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error al eliminar el usuario: {str(e)}', 'danger')
+    
+    return redirect(url_for('manage_users'))
+
+@app.route('/equipment/<int:equipment_id>/reserve', methods=['POST'])
+@login_required
+def reserve_equipment(equipment_id):
+    if current_user.is_admin:
+        flash('Los administradores no pueden realizar reservas.', 'error')
+        return redirect(url_for('equipment_detail', equipment_id=equipment_id))
+
+    equipment = Equipment.query.get_or_404(equipment_id)
+    
+    # Verificar si el usuario es el propietario
+    if equipment.creator_id == current_user.id:
+        flash('No puedes reservar tu propio equipo.', 'error')
+        return redirect(url_for('equipment_detail', equipment_id=equipment_id))
+
+    # Verificar si hay suficiente cantidad disponible
+    quantity = int(request.form.get('quantity', 1))
+    if quantity <= 0:
+        flash('La cantidad debe ser mayor que 0.', 'error')
+        return redirect(url_for('equipment_detail', equipment_id=equipment_id))
+    
+    if quantity > equipment.available_quantity:
+        flash('No hay suficiente cantidad disponible.', 'error')
+        return redirect(url_for('equipment_detail', equipment_id=equipment_id))
+
+    # Crear la transacción
+    transaction = Transaction(
+        equipment_id=equipment.id,
+        buyer_id=current_user.id,
+        seller_id=equipment.creator_id,
+        quantity=quantity,
+        unit_price=equipment.unit_price,
+        status='Pendiente'
+    )
+
+    # Actualizar la cantidad disponible
+    equipment.available_quantity -= quantity
+
+    # Crear notificación para el vendedor
+    notification = Notification(
+        recipient_id=equipment.creator_id,
+        message=f'Nueva solicitud de reserva para {equipment.name} por {current_user.username}',
+        type='reservation',
+        transaction_id=transaction.id
+    )
+
+    try:
+        db.session.add(transaction)
+        db.session.add(notification)
+        db.session.commit()
+        flash('Solicitud de reserva enviada correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al procesar la reserva.', 'error')
+        print(f"Error: {str(e)}")
+
+    return redirect(url_for('equipment_detail', equipment_id=equipment_id))
+
+@app.route('/transactions')
+@login_required
+def transactions():
+    if current_user.is_admin:
+        all_transactions = Transaction.query.order_by(Transaction.created_at.desc()).all()
+        return render_template('transactions.html', all_transactions=all_transactions)
+    else:
+        purchases = Transaction.query.filter_by(buyer_id=current_user.id)\
+            .order_by(Transaction.created_at.desc()).all()
+        sales = Transaction.query.filter_by(seller_id=current_user.id)\
+            .order_by(Transaction.created_at.desc()).all()
+        return render_template('transactions.html', purchases=purchases, sales=sales)
+
+@app.route('/my-transactions')
+@login_required
+def my_transactions():
+    # Obtener las transacciones del usuario donde es comprador
+    my_reservations = Transaction.query\
+        .options(db.joinedload(Transaction.equipment))\
+        .options(db.joinedload(Transaction.seller))\
+        .filter(Transaction.buyer_id == current_user.id)\
+        .order_by(Transaction.created_at.desc())\
+        .all()
+    
+    return render_template('my_transactions.html', transactions=my_reservations)
+
+@app.route('/my-sales')
+@login_required
+def my_sales():
+    # Obtener las transacciones del usuario donde es vendedor
+    my_sales = Transaction.query\
+        .options(db.joinedload(Transaction.equipment))\
+        .options(db.joinedload(Transaction.buyer))\
+        .filter(Transaction.seller_id == current_user.id)\
+        .order_by(Transaction.created_at.desc())\
+        .all()
+    
+    return render_template('my_sales.html', transactions=my_sales)
+
+@app.route('/transaction/<int:transaction_id>/cancel', methods=['POST'])
+@login_required
+def cancel_transaction(transaction_id):
+    transaction = Transaction.query.get_or_404(transaction_id)
+    
+    # Solo permitir cancelar si es admin o si es el comprador/vendedor y la transacción está pendiente
+    if not (current_user.is_admin or 
+            ((current_user.id == transaction.buyer_id or current_user.id == transaction.seller_id) 
+             and transaction.status == 'Pendiente')):
+        flash('No tienes permiso para cancelar esta transacción.', 'error')
+        return redirect(url_for('transactions'))
+
+    if transaction.status != 'Pendiente':
+        flash('Solo se pueden cancelar transacciones pendientes.', 'error')
+        return redirect(url_for('transactions'))
+
+    try:
+        # Devolver la cantidad al inventario disponible
+        equipment = transaction.equipment
+        equipment.available_quantity += transaction.quantity
+        
+        # Actualizar estado de la transacción
+        transaction.status = 'Cancelado'
+        
+        # Crear notificaciones para comprador y vendedor
+        if current_user.is_admin:
+            buyer_msg = f'Un administrador ha cancelado tu reserva de {transaction.quantity} unidad(es) de {equipment.name}'
+            seller_msg = f'Un administrador ha cancelado la reserva de {transaction.quantity} unidad(es) de {equipment.name} por {transaction.buyer.username}'
+        else:
+            actor = 'comprador' if current_user.id == transaction.buyer_id else 'vendedor'
+            buyer_msg = f'El {actor} ha cancelado la reserva de {transaction.quantity} unidad(es) de {equipment.name}'
+            seller_msg = buyer_msg
+
+        # Notificar al comprador
+        if current_user.id != transaction.buyer_id:
+            buyer_notification = Notification(
+                recipient_id=transaction.buyer_id,
+                message=buyer_msg,
+                type='cancellation',
+                transaction_id=transaction.id
+            )
+            db.session.add(buyer_notification)
+
+        # Notificar al vendedor
+        if current_user.id != transaction.seller_id:
+            seller_notification = Notification(
+                recipient_id=transaction.seller_id,
+                message=seller_msg,
+                type='cancellation',
+                transaction_id=transaction.id
+            )
+            db.session.add(seller_notification)
+
+        db.session.commit()
+        flash('Transacción cancelada exitosamente.', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al cancelar la transacción.', 'error')
+        print(f"Error: {str(e)}")
+    
+    return redirect(url_for('transactions'))
+
+@app.route('/notifications')
+@login_required
+def notifications():
+    user_notifications = Notification.query.filter_by(recipient_id=current_user.id)\
+        .order_by(Notification.created_at.desc()).all()
+    return render_template('notifications.html', notifications=user_notifications)
+
+@app.route('/notifications/<int:notification_id>/read', methods=['POST'])
+@login_required
+def mark_notification_read(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    if notification.recipient_id != current_user.id:
+        abort(403)
+    
+    notification.read = True
+    db.session.commit()
+    return redirect(url_for('notifications'))
+
+@app.context_processor
+def utility_processor():
+    def unread_notifications_count():
+        if current_user.is_authenticated:
+            return Notification.query.filter_by(recipient_id=current_user.id, read=False).count()
+        return 0
+    
+    return dict(unread_notifications_count=unread_notifications_count())  # Llamar a la función aquí
+
+def init_db():
+    """Initialize the database."""
+    with app.app_context():
+        # Crear todas las tablas si no existen
+        db.create_all()
+        
+        # Crear usuario admin por defecto si no existe
+        admin_user = User.query.filter_by(username='admin').first()
+        if not admin_user:
+            admin_user = User(
+                username='admin',
+                is_admin=True
+            )
+            admin_user.set_password('admin123')
+            db.session.add(admin_user)
+            db.session.commit()
+
+if __name__ == '__main__':
+    init_db()  # Inicializar la base de datos al iniciar la aplicación
+    app.run(debug=True)

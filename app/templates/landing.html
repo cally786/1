@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="landing-page">
+    <!-- Hero Section -->
+    <section class="hero bg-primary text-white py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold mb-4">Gestiona tu Inventario de Manera Eficiente</h1>
+                    <p class="lead mb-4">Descubre una forma más inteligente de administrar tus equipos y recursos con nuestra plataforma integral.</p>
+                    {% if not current_user.is_authenticated %}
+                    <div class="d-flex gap-3">
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg">Iniciar Sesión</a>
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg">Registrarse</a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-lg-6">
+                    <img src="{{ url_for('static', filename='img/hero-image.svg') }}" alt="Gestión de Inventario" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Características Principales</h2>
+            <div class="row g-4">
+                <!-- Equipos -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="feature-icon bg-primary bg-gradient text-white rounded-circle p-3 mb-3">
+                                <i class="fas fa-box fa-2x"></i>
+                            </div>
+                            <h3 class="card-title h5">Gestión de Equipos</h3>
+                            <p class="card-text">Visualiza y gestiona todos tus equipos en un solo lugar. Mantén un registro detallado de cada artículo.</p>
+                            <a href="{{ url_for('equipment.published_equipment') }}" class="btn btn-outline-primary">Ver Equipos</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Préstamos -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="feature-icon bg-success bg-gradient text-white rounded-circle p-3 mb-3">
+                                <i class="fas fa-handshake fa-2x"></i>
+                            </div>
+                            <h3 class="card-title h5">Sistema de Préstamos</h3>
+                            <p class="card-text">Solicita y gestiona préstamos de equipos de manera sencilla. Recibe notificaciones sobre el estado de tus solicitudes.</p>
+                            {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('transaction.my_transactions') }}" class="btn btn-outline-success">Mis Préstamos</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Soporte -->
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="feature-icon bg-info bg-gradient text-white rounded-circle p-3 mb-3">
+                                <i class="fas fa-comments fa-2x"></i>
+                            </div>
+                            <h3 class="card-title h5">Soporte en Tiempo Real</h3>
+                            <p class="card-text">Comunícate directamente con nuestro equipo de soporte a través del sistema de chat integrado.</p>
+                            {% if current_user.is_authenticated %}
+                            <a href="{{ url_for('chat.my_chats') }}" class="btn btn-outline-info">Chat de Soporte</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">¿Cómo Funciona?</h2>
+            <div class="row g-4">
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="step-circle bg-primary text-white mb-3">1</div>
+                        <h4>Explora</h4>
+                        <p>Navega por nuestro catálogo de equipos disponibles</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="step-circle bg-primary text-white mb-3">2</div>
+                        <h4>Solicita</h4>
+                        <p>Realiza tu solicitud de préstamo en línea</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="step-circle bg-primary text-white mb-3">3</div>
+                        <h4>Recibe</h4>
+                        <p>Recoge tu equipo en el punto designado</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <div class="step-circle bg-primary text-white mb-3">4</div>
+                        <h4>Devuelve</h4>
+                        <p>Regresa el equipo al finalizar el período</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats py-5">
+        <div class="container">
+            <div class="row text-center g-4">
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <h3 class="display-4 fw-bold text-primary">{{ equipment_count }}</h3>
+                        <p class="lead">Equipos Disponibles</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <h3 class="display-4 fw-bold text-success">{{ active_transactions }}</h3>
+                        <p class="lead">Transacciones Activas</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-item">
+                        <h3 class="display-4 fw-bold text-info">{{ user_count }}</h3>
+                        <p class="lead">Usuarios Registrados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<style>
+.landing-page {
+    overflow-x: hidden;
+}
+
+.hero {
+    background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+}
+
+.feature-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.step-circle {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 auto;
+}
+
+.card {
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-item {
+    padding: 20px;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 0 15px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .hero {
+        text-align: center;
+    }
+    
+    .hero img {
+        margin-top: 2rem;
+    }
+}
+</style>
+{% endblock %}

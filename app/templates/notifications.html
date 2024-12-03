@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Notificaciones</h2>
+    
+    <!-- Notificaciones no leídas -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center bg-primary text-white">
+            <h5 class="mb-0">Nuevas notificaciones</h5>
+            {% if unread_notifications %}
+            <button class="btn btn-light btn-sm" onclick="markAllAsRead()">
+                <i class="fas fa-check-double"></i> Marcar todas como leídas
+            </button>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if unread_notifications %}
+            <div class="notification-list">
+                {% for notification in unread_notifications %}
+                <div class="notification-item unread" data-id="{{ notification.id }}">
+                    <div class="notification-icon">
+                        <i class="fas fa-{{ notification.get_icon() }} {{ notification.get_color() }}"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message">{{ notification.message }}</div>
+                        <div class="notification-time">{{ notification.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                    </div>
+                    <div class="notification-actions">
+                        <button class="btn btn-sm btn-outline-primary" onclick="markAsRead({{ notification.id }})">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No hay notificaciones nuevas</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Notificaciones leídas -->
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">Notificaciones anteriores</h5>
+        </div>
+        <div class="card-body">
+            {% if read_notifications %}
+            <div class="notification-list">
+                {% for notification in read_notifications %}
+                <div class="notification-item read" data-id="{{ notification.id }}">
+                    <div class="notification-icon">
+                        <i class="fas fa-{{ notification.get_icon() }} {{ notification.get_color() }} opacity-50"></i>
+                    </div>
+                    <div class="notification-content">
+                        <div class="notification-message text-muted">{{ notification.message }}</div>
+                        <div class="notification-time text-muted">{{ notification.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">No hay notificaciones anteriores</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    display: flex;
+    align-items: start;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    transition: background-color 0.3s;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-icon {
+    margin-right: 15px;
+    font-size: 1.2em;
+    width: 30px;
+    text-align: center;
+}
+
+.notification-content {
+    flex: 1;
+}
+
+.notification-message {
+    margin-bottom: 5px;
+}
+
+.notification-time {
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.notification-actions {
+    margin-left: 15px;
+}
+
+.unread {
+    background-color: #f8f9fa;
+}
+
+.read {
+    opacity: 0.8;
+}
+
+.notification-item.read .notification-message {
+    color: #6c757d;
+}
+</style>
+
+<script>
+function markAsRead(notificationId) {
+    fetch('/notifications/mark-as-read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            notification_id: notificationId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function markAllAsRead() {
+    const unreadIds = Array.from(document.querySelectorAll('.notification-item.unread'))
+        .map(item => parseInt(item.dataset.id));
+    
+    fetch('/notifications/mark-all-as-read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            notification_ids: unreadIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+</script>
+{% endblock %}

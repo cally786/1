@@ -1,0 +1,33 @@
+# Base de datos
+*.db
+*.sqlite3
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entorno virtual
+venv/
+env/
+ENV/
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de configuración local
+instance/
+.env
+
+# Archivos de log
+*.log
+
+# Archivos de media y uploads
+static/uploads/

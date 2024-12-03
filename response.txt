@@ -1,0 +1,161 @@
+Note: Unnecessary use of -X or --request, POST is already inferred.
+* Host localhost:5000 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:5000...
+*   Trying 127.0.0.1:5000...
+* Connected to localhost (127.0.0.1) port 5000
+> POST /add_equipment HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.9.1
+> Accept: */*
+> Cookie: session=.eJwlzjEOwzAIAMC_MHewwYCdz0TGgNo1aaaqf2-kbjfeB_Y84nzC9j6ueMD-ctgAmZmm5EIyLHMN59BUdXVaXtibRIk-MDNsUTUuwiTTKFBu2zCbbZhMTS_au3VUF-fiHVGk0ZpunJVdcjQerVg3VxIfatLgjlxnHP9Nhe8P6B0vgQ.Z05ydg.a8GIRX6c2fVsLzayDFGD6TLO-Uo
+> Content-Length: 1168
+> Content-Type: multipart/form-data; boundary=------------------------Wzi0HzhIJ9PzOroIaRBpTr
+> 
+} [1168 bytes data]
+* upload completely sent off: 1168 bytes
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/2.3.7 Python/3.12.7
+< Date: Tue, 03 Dec 2024 02:52:38 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 215
+* Need to rewind upload for next request
+< Location: /add_equipment
+< Vary: Cookie
+* Replaced cookie session=".eJwlj8FqxDAMRH_F6LwUx7ZkO39S2mWxLLkbaJM2TqCw7L_X0NO8uQxvHnBrn6XftcP89gBzjAAp64fucIHXYvR36YeaczX6cy7fm6nbwK5mfT-tbeVL982Imq77oi9wfV4vY3LXfof52E8dbRGYwSGiL9Sq8-xsqVlQY4tRovgqFiWQWk3ZtaZc_cRoCT0V9upoMGfmEjJTiU1sTImTi0KCVpJzRMHXIoxtQqGWA-ZgObFET5IjUxhvbueQ_LeZ4PkHuzNLdg.Z05ydg.9JY7yO78TdhHf9JvrG2oT9l4nfE" for domain localhost, path /, expire 0
+< Set-Cookie: session=.eJwlj8FqxDAMRH_F6LwUx7ZkO39S2mWxLLkbaJM2TqCw7L_X0NO8uQxvHnBrn6XftcP89gBzjAAp64fucIHXYvR36YeaczX6cy7fm6nbwK5mfT-tbeVL982Imq77oi9wfV4vY3LXfof52E8dbRGYwSGiL9Sq8-xsqVlQY4tRovgqFiWQWk3ZtaZc_cRoCT0V9upoMGfmEjJTiU1sTImTi0KCVpJzRMHXIoxtQqGWA-ZgObFET5IjUxhvbueQ_LeZ4PkHuzNLdg.Z05ydg.9JY7yO78TdhHf9JvrG2oT9l4nfE; HttpOnly; Path=/
+< Connection: close
+< 
+ 84  1383    0     0  100  1168      0   5274 --:--:-- --:--:-- --:--:--  5285
+* shutting down connection #0
+* Issue another request to this URL: 'http://localhost:5000/add_equipment'
+* Switch from POST to GET
+* Hostname localhost was found in DNS cache
+*   Trying [::1]:5000...
+*   Trying 127.0.0.1:5000...
+* Connected to localhost (127.0.0.1) port 5000
+> POST /add_equipment HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.9.1
+> Accept: */*
+> Cookie: session=.eJwlj8FqxDAMRH_F6LwUx7ZkO39S2mWxLLkbaJM2TqCw7L_X0NO8uQxvHnBrn6XftcP89gBzjAAp64fucIHXYvR36YeaczX6cy7fm6nbwK5mfT-tbeVL982Imq77oi9wfV4vY3LXfof52E8dbRGYwSGiL9Sq8-xsqVlQY4tRovgqFiWQWk3ZtaZc_cRoCT0V9upoMGfmEjJTiU1sTImTi0KCVpJzRMHXIoxtQqGWA-ZgObFET5IjUxhvbueQ_LeZ4PkHuzNLdg.Z05ydg.9JY7yO78TdhHf9JvrG2oT9l4nfE
+> 
+* Request completely sent off
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/2.3.7 Python/3.12.7
+< Date: Tue, 03 Dec 2024 02:52:38 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 215
+< Location: /add_equipment
+< Vary: Cookie
+* Replaced cookie session=".eJw1j81qwzAQhF9F6GyKrF_LT9FraUPY1a4SQ2K1kl0KIe9emdLLzOxhP2Ye8pxv0K7c5Pz-kGLrJgnWC1c5yDcQ_LO0jcW-Cv7al88iUumxsVg_dqUy3LkWQSwa14Vf5Ok5_FO41nJAXksVGb67Nr5xSktZDx6IBBtfSj04TNBfT0NvU7ld5bzVnfu1kJylds4Z8Dlpg1pBiuQ45BAokEmkHFnPiqeoc2ZMZkSnvDMe0LD2PWNEBBvRQ8ikwjThpAN5coomrb23JgGhy6Mjn6N10SqckILxFAN62zec977vr80on7-0ol-v.Z05ydg.Gm_ce3XPVJ9s2piBXds1WddLpZ0" for domain localhost, path /, expire 0
+< Set-Cookie: session=.eJw1j81qwzAQhF9F6GyKrF_LT9FraUPY1a4SQ2K1kl0KIe9emdLLzOxhP2Ye8pxv0K7c5Pz-kGLrJgnWC1c5yDcQ_LO0jcW-Cv7al88iUumxsVg_dqUy3LkWQSwa14Vf5Ok5_FO41nJAXksVGb67Nr5xSktZDx6IBBtfSj04TNBfT0NvU7ld5bzVnfu1kJylds4Z8Dlpg1pBiuQ45BAokEmkHFnPiqeoc2ZMZkSnvDMe0LD2PWNEBBvRQ8ikwjThpAN5coomrb23JgGhy6Mjn6N10SqckILxFAN62zec977vr80on7-0ol-v.Z05ydg.Gm_ce3XPVJ9s2piBXds1WddLpZ0; HttpOnly; Path=/
+< Connection: close
+< 
+  0   215    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* shutting down connection #1
+* Issue another request to this URL: 'http://localhost:5000/add_equipment'
+* Hostname localhost was found in DNS cache
+*   Trying [::1]:5000...
+*   Trying 127.0.0.1:5000...
+* Connected to localhost (127.0.0.1) port 5000
+> POST /add_equipment HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.9.1
+> Accept: */*
+> Cookie: session=.eJw1j81qwzAQhF9F6GyKrF_LT9FraUPY1a4SQ2K1kl0KIe9emdLLzOxhP2Ye8pxv0K7c5Pz-kGLrJgnWC1c5yDcQ_LO0jcW-Cv7al88iUumxsVg_dqUy3LkWQSwa14Vf5Ok5_FO41nJAXksVGb67Nr5xSktZDx6IBBtfSj04TNBfT0NvU7ld5bzVnfu1kJylds4Z8Dlpg1pBiuQ45BAokEmkHFnPiqeoc2ZMZkSnvDMe0LD2PWNEBBvRQ8ikwjThpAN5coomrb23JgGhy6Mjn6N10SqckILxFAN62zec977vr80on7-0ol-v.Z05ydg.Gm_ce3XPVJ9s2piBXds1WddLpZ0
+> 
+* Request completely sent off
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/2.3.7 Python/3.12.7
+< Date: Tue, 03 Dec 2024 02:52:39 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 215
+< Location: /add_equipment
+< Vary: Cookie
+* Replaced cookie session=".eJylkE1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9ITdKP3tNDHe7rLc75Bu3KT8-tdiq2LJFgvXOUgX0Dw99I2Fvsq-HNfPopIpdvGYn3blcrwzrUIYtG4LvwkT4_hj8K1lgPyXKrI8NVn4xuntJT14IFIsPGl1IPDBP87PQ29SOV2lfNWd-7bQnKW2jlnwOekDWoFKZLjkEOgQCaRcmQ9K56izpkxmRGd8s54QMPad48REWxEDyGTCtOEkw7kySmatPbemgSELo-OfI7WRatwQgrGUwzobe9w3vtrftOM8vEDV39z6A.Z05ydw.j3Rkx9hesK7Wif-d_QhMJh9LUCA" for domain localhost, path /, expire 0
+< Set-Cookie: session=.eJylkE1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9ITdKP3tNDHe7rLc75Bu3KT8-tdiq2LJFgvXOUgX0Dw99I2Fvsq-HNfPopIpdvGYn3blcrwzrUIYtG4LvwkT4_hj8K1lgPyXKrI8NVn4xuntJT14IFIsPGl1IPDBP87PQ29SOV2lfNWd-7bQnKW2jlnwOekDWoFKZLjkEOgQCaRcmQ9K56izpkxmRGd8s54QMPad48REWxEDyGTCtOEkw7kySmatPbemgSELo-OfI7WRatwQgrGUwzobe9w3vtrftOM8vEDV39z6A.Z05ydw.j3Rkx9hesK7Wif-d_QhMJh9LUCA; HttpOnly; Path=/
+< Connection: close
+< 
+  0   215    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* shutting down connection #2
+* Issue another request to this URL: 'http://localhost:5000/add_equipment'
+* Hostname localhost was found in DNS cache
+*   Trying [::1]:5000...
+*   Trying 127.0.0.1:5000...
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0* Connected to localhost (127.0.0.1) port 5000
+> POST /add_equipment HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.9.1
+> Accept: */*
+> Cookie: session=.eJylkE1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9ITdKP3tNDHe7rLc75Bu3KT8-tdiq2LJFgvXOUgX0Dw99I2Fvsq-HNfPopIpdvGYn3blcrwzrUIYtG4LvwkT4_hj8K1lgPyXKrI8NVn4xuntJT14IFIsPGl1IPDBP87PQ29SOV2lfNWd-7bQnKW2jlnwOekDWoFKZLjkEOgQCaRcmQ9K56izpkxmRGd8s54QMPad48REWxEDyGTCtOEkw7kySmatPbemgSELo-OfI7WRatwQgrGUwzobe9w3vtrftOM8vEDV39z6A.Z05ydw.j3Rkx9hesK7Wif-d_QhMJh9LUCA
+> 
+* Request completely sent off
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/2.3.7 Python/3.12.7
+< Date: Tue, 03 Dec 2024 02:52:39 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 215
+< Location: /add_equipment
+< Vary: Cookie
+* Replaced cookie session=".eJzFkE1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9IzdKP3tNCH3rvLc75Bu3KT8-tdiq2LJFgvXOUgX0Dw99I2Fvsq-HNfPopIpdvGYn3blcrwzrUIYtG4LvwkT4_hj8K1lgPyXKrI8NVn4xuntJT14IFIsPGl1IPDBP92ehp6B5XbVc5b3blvC8lZauecAZ-TNqgVpEiOQw6BAplEypH1rHiKOmfGZEZ0yjvjAQ1r3z1GRLARPYRMKkwTTjqQJ6do0tp7axIQujw68jlaF63CCSkYTzGgtz3Dee-t_n4zyscPo7uIIQ.Z05ydw.Wo-9qT7rn_nq8WHYJuscH68Lth0" for domain localhost, path /, expire 0
+< Set-Cookie: session=.eJzFkE1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9IzdKP3tNCH3rvLc75Bu3KT8-tdiq2LJFgvXOUgX0Dw99I2Fvsq-HNfPopIpdvGYn3blcrwzrUIYtG4LvwkT4_hj8K1lgPyXKrI8NVn4xuntJT14IFIsPGl1IPDBP92ehp6B5XbVc5b3blvC8lZauecAZ-TNqgVpEiOQw6BAplEypH1rHiKOmfGZEZ0yjvjAQ1r3z1GRLARPYRMKkwTTjqQJ6do0tp7axIQujw68jlaF63CCSkYTzGgtz3Dee-t_n4zyscPo7uIIQ.Z05ydw.Wo-9qT7rn_nq8WHYJuscH68Lth0; HttpOnly; Path=/
+< Connection: close
+< 
+  0   215    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0
+* shutting down connection #3
+* Issue another request to this URL: 'http://localhost:5000/add_equipment'
+* Hostname localhost was found in DNS cache
+*   Trying [::1]:5000...
+*   Trying 127.0.0.1:5000...
+* Connected to localhost (127.0.0.1) port 5000
+> POST /add_equipment HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.9.1
+> Accept: */*
+> Cookie: session=.eJzFkE1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9IzdKP3tNCH3rvLc75Bu3KT8-tdiq2LJFgvXOUgX0Dw99I2Fvsq-HNfPopIpdvGYn3blcrwzrUIYtG4LvwkT4_hj8K1lgPyXKrI8NVn4xuntJT14IFIsPGl1IPDBP92ehp6B5XbVc5b3blvC8lZauecAZ-TNqgVpEiOQw6BAplEypH1rHiKOmfGZEZ0yjvjAQ1r3z1GRLARPYRMKkwTTjqQJ6do0tp7axIQujw68jlaF63CCSkYTzGgtz3Dee-t_n4zyscPo7uIIQ.Z05ydw.Wo-9qT7rn_nq8WHYJuscH68Lth0
+> 
+* Request completely sent off
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/2.3.7 Python/3.12.7
+< Date: Tue, 03 Dec 2024 02:52:39 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 215
+< Location: /add_equipment
+< Vary: Cookie
+* Replaced cookie session=".eJzVkU1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9JDdKP3tNCHnnSX53yDduUm59e7FFsXSbBeuMpBvoDg76VtLPZV8Oe-fBSRSreNxfq2K5XhnWsRxKJxXfhJnh7DH4VrLQfkuVSR4avXxjdOaSnrwQORYONLqQeHCf7j6Gno56vcrnLe6s69W0jOUjvnDPictEGtIEVyHHIIFMgkUo6sZ8VT1DkzJjOiU94ZD2hY--4xIoKN6CFkUmGacNKBPDlFk9beW5OA0OXRkc_RumgVTkjBeIoBve0Zznt_yO82o3z8AJllnFo.Z05ydw.J_PdeXNEVv5zCXGLTodc-x4qQ1k" for domain localhost, path /, expire 0
+< Set-Cookie: session=.eJzVkU1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9JDdKP3tNCHnnSX53yDduUm59e7FFsXSbBeuMpBvoDg76VtLPZV8Oe-fBSRSreNxfq2K5XhnWsRxKJxXfhJnh7DH4VrLQfkuVSR4avXxjdOaSnrwQORYONLqQeHCf7j6Gno56vcrnLe6s69W0jOUjvnDPictEGtIEVyHHIIFMgkUo6sZ8VT1DkzJjOiU94ZD2hY--4xIoKN6CFkUmGacNKBPDlFk9beW5OA0OXRkc_RumgVTkjBeIoBve0Zznt_yO82o3z8AJllnFo.Z05ydw.J_PdeXNEVv5zCXGLTodc-x4qQ1k; HttpOnly; Path=/
+< Connection: close
+< 
+  0   215    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
+* shutting down connection #4
+* Issue another request to this URL: 'http://localhost:5000/add_equipment'
+* Hostname localhost was found in DNS cache
+*   Trying [::1]:5000...
+*   Trying 127.0.0.1:5000...
+* Connected to localhost (127.0.0.1) port 5000
+> POST /add_equipment HTTP/1.1
+> Host: localhost:5000
+> User-Agent: curl/8.9.1
+> Accept: */*
+> Cookie: session=.eJzVkU1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9JDdKP3tNCHnnSX53yDduUm59e7FFsXSbBeuMpBvoDg76VtLPZV8Oe-fBSRSreNxfq2K5XhnWsRxKJxXfhJnh7DH4VrLQfkuVSR4avXxjdOaSnrwQORYONLqQeHCf7j6Gno56vcrnLe6s69W0jOUjvnDPictEGtIEVyHHIIFMgkUo6sZ8VT1DkzJjOiU94ZD2hY--4xIoKN6CFkUmGacNKBPDlFk9beW5OA0OXRkc_RumgVTkjBeIoBve0Zznt_yO82o3z8AJllnFo.Z05ydw.J_PdeXNEVv5zCXGLTodc-x4qQ1k
+> 
+* Request completely sent off
+< HTTP/1.1 302 FOUND
+< Server: Werkzeug/2.3.7 Python/3.12.7
+< Date: Tue, 03 Dec 2024 02:52:39 GMT
+< Content-Type: text/html; charset=utf-8
+< Content-Length: 215
+< Location: /add_equipment
+< Vary: Cookie
+* Replaced cookie session=".eJzlkU1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9JTdKP3tNCHnnSX53yDduUm59e7FFsXSbBeuMpBvoDg76VtLPZV8Oe-fBSRSreNxfq2K5XhnWsRxKJxXfhJnh7DH4VrLQfkuVSR4avXxjdOaSnrwQORYONLqQeHCf7Z6Gnol6_crnLe6s69W0jOUjvnDPictEGtIEVyHHIIFMgkUo6sZ8VT1DkzJjOiU94ZD2hY--4xIoKN6CFkUmGacNKBPDlFk9beW5OA0OXRkc_RumgVTkjBeIoBve0Zznv_5e82o3z8ADh9sJM.Z05ydw.N3CoQzopULXD3qYQZ9d4bHJyGNE" for domain localhost, path /, expire 0
+< Set-Cookie: session=.eJzlkU1qxDAMha9ivA7F8W-cU3Rb2mGQLHkmMI1bOymFYe5eh9JTdKP3tNCHnnSX53yDduUm59e7FFsXSbBeuMpBvoDg76VtLPZV8Oe-fBSRSreNxfq2K5XhnWsRxKJxXfhJnh7DH4VrLQfkuVSR4avXxjdOaSnrwQORYONLqQeHCf7Z6Gnol6_crnLe6s69W0jOUjvnDPictEGtIEVyHHIIFMgkUo6sZ8VT1DkzJjOiU94ZD2hY--4xIoKN6CFkUmGacNKBPDlFk9beW5OA0OXRkc_RumgVTkjBeIoBve0Zznv_5e82o3z8ADh9sJM.Z05ydw.N3CoQzopULXD3qYQZ9d4bHJyGNE; HttpOnly; Path=/
+< Connection: close
+< 
+  0   215    0     0    0     0      0      0 --:--:--  0:00:01 --:--:--     0
+* shutting down connection #5
+* Maximum (5) redirects followed
+curl: (47) Maximum (5) redirects followed

@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Editar Equipo</h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="company" class="form-label">Empresa</label>
+                                <input type="text" class="form-control" id="company" name="company" 
+                                       value="{{ equipment.company }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Nombre del Equipo</label>
+                                <input type="text" class="form-control" id="name" name="name" 
+                                       value="{{ equipment.name }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="model" class="form-label">Modelo</label>
+                                <input type="text" class="form-control" id="model" name="model" 
+                                       value="{{ equipment.model }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label">Categoría</label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="">Seleccionar categoría</option>
+                                    {% for cat in categories %}
+                                        <option value="{{ cat.id }}" {% if equipment.category_id == cat.id %}selected{% endif %}>
+                                            {{ cat.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="serial_number" class="form-label">Número de Serie</label>
+                                <input type="text" class="form-control" id="serial_number" name="serial_number" 
+                                       value="{{ equipment.serial_number }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">Ubicación</label>
+                                <select class="form-select" id="location" name="location" required>
+                                    <option value="">Seleccionar ubicación</option>
+                                    {% for city in ['São Paulo', 'Guarulhos', 'Osasco', 'Santo André', 
+                                                  'São Bernardo do Campo', 'São Caetano do Sul', 'Diadema', 
+                                                  'Mauá', 'Taboão da Serra', 'Embu das Artes', 
+                                                  'Itaquaquecetuba', 'Barueri', 'Cotia', 
+                                                  'Ferraz de Vasconcelos', 'Francisco Morato', 
+                                                  'Franco da Rocha', 'Carapicuíba', 'Poá', 
+                                                  'Ribeirão Pires', 'Suzano'] %}
+                                        <option value="{{ city }}" {% if equipment.location == city %}selected{% endif %}>
+                                            {{ city }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="quantity" class="form-label">Cantidad</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" 
+                                       value="{{ equipment.quantity }}" required min="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="unit_price" class="form-label">Precio Unitario ($)</label>
+                                <input type="number" step="0.01" class="form-control" id="unit_price" name="unit_price" 
+                                       value="{{ equipment.unit_price }}" required min="0">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label for="notes" class="form-label">Notas</label>
+                                <textarea class="form-control" id="notes" name="notes" rows="3">{{ equipment.notes }}</textarea>
+                            </div>
+                        </div>
+
+                        {% if current_user.is_admin %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Estado</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="En revisión" {% if equipment.status == 'En revisión' %}selected{% endif %}>En revisión</option>
+                                    <option value="Revisado" {% if equipment.status == 'Revisado' %}selected{% endif %}>Revisado</option>
+                                    <option value="Publicado" {% if equipment.status == 'Publicado' %}selected{% endif %}>Publicado</option>
+                                    <option value="Rechazado" {% if equipment.status == 'Rechazado' %}selected{% endif %}>Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        {% if not current_user.is_admin and equipment.status == 'Publicado' %}
+                        <div class="mb-3" id="revision-reason-container" style="display: none;">
+                            <label for="revision_reason" class="form-label">Razón para poner en revisión</label>
+                            <textarea class="form-control" id="revision_reason" name="revision_reason" rows="3" 
+                                    placeholder="Por favor, explica por qué necesitas modificar el producto (ej: actualización de precio, corrección de stock, etc.)"></textarea>
+                            <small class="form-text text-muted">
+                                Esta información será enviada al administrador para su revisión.
+                            </small>
+                        </div>
+                        
+                        <script>
+                            // Mostrar el campo de razón cuando se modifica algo más que el nombre
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const originalValues = {
+                                    company: '{{ equipment.company }}',
+                                    model: '{{ equipment.model }}',
+                                    category_id: '{{ equipment.category_id }}',
+                                    serial_number: '{{ equipment.serial_number }}',
+                                    quantity: '{{ equipment.quantity }}',
+                                    unit_price: '{{ equipment.unit_price }}',
+                                    location: '{{ equipment.location }}'
+                                };
+                                
+                                const form = document.querySelector('form');
+                                const reasonContainer = document.getElementById('revision-reason-container');
+                                
+                                form.addEventListener('change', function(e) {
+                                    if (e.target.name in originalValues) {
+                                        if (e.target.value !== originalValues[e.target.name]) {
+                                            reasonContainer.style.display = 'block';
+                                        } else {
+                                            // Verificar si algún otro campo ha cambiado
+                                            let anyChanged = false;
+                                            for (let field in originalValues) {
+                                                const input = form.querySelector(`[name="${field}"]`);
+                                                if (input && input.value !== originalValues[field]) {
+                                                    anyChanged = true;
+                                                    break;
+                                                }
+                                            }
+                                            if (!anyChanged) {
+                                                reasonContainer.style.display = 'none';
+                                            }
+                                        }
+                                    }
+                                });
+                            });
+                        </script>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="image" class="form-label">Imagen</label>
+                                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                                {% if equipment.image_filename %}
+                                <small class="text-muted">Imagen actual: {{ equipment.image_filename }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                            <a href="{{ url_for('equipment.equipment_detail', equipment_id=equipment.id) }}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

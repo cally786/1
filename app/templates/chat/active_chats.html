@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Mis Chats Activos</h2>
+    
+    {% if chats %}
+    <div class="list-group mt-3">
+        {% for chat in chats %}
+        <a href="{{ url_for('chat.chat_messages', chat_id=chat.id) }}" 
+           class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ chat.title }}</h5>
+                <small>{{ chat.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+            </div>
+            <p class="mb-1">Usuario: {{ chat.user.username }}</p>
+            {% set unread = chat.messages|selectattr('is_read', 'equalto', false)|selectattr('sender_id', 'ne', current_user.id)|list|length %}
+            {% if unread > 0 %}
+            <span class="badge bg-primary">{{ unread }} mensajes sin leer</span>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        No tienes chats activos en este momento.
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Actualizar el contador de mensajes no leídos cada 30 segundos
+setInterval(function() {
+    fetch('/chats/unread/count')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const unreadBadge = document.getElementById('unread-messages-badge');
+                if (unreadBadge) {
+                    if (data.count > 0) {
+                        unreadBadge.textContent = data.count;
+                        unreadBadge.style.display = 'inline';
+                    } else {
+                        unreadBadge.style.display = 'none';
+                    }
+                }
+            }
+        });
+}, 30000);
+</script>
+{% endblock %}

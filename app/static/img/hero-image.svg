@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800px" height="600px" viewBox="0 0 800 600" version="1.1" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <!-- Background Elements -->
+        <circle fill="#E3F2FD" cx="400" cy="300" r="250"/>
+        <circle fill="#BBDEFB" cx="400" cy="300" r="200"/>
+        
+        <!-- Equipment Icons -->
+        <g transform="translate(300,200)">
+            <!-- Laptop -->
+            <rect fill="#FFFFFF" x="0" y="0" width="200" height="120" rx="10"/>
+            <rect fill="#90CAF9" x="20" y="20" width="160" height="80" rx="5"/>
+            
+            <!-- Monitor -->
+            <rect fill="#FFFFFF" x="-50" y="-80" width="120" height="80" rx="5"/>
+            <rect fill="#90CAF9" x="-40" y="-70" width="100" height="60"/>
+            <rect fill="#FFFFFF" x="-10" y="0" width="40" height="20"/>
+            
+            <!-- Tablet -->
+            <rect fill="#FFFFFF" x="160" y="-50" width="80" height="100" rx="10"/>
+            <rect fill="#90CAF9" x="170" y="-40" width="60" height="80" rx="5"/>
+            
+            <!-- Phone -->
+            <rect fill="#FFFFFF" x="-100" y="-40" width="40" height="80" rx="5"/>
+            <rect fill="#90CAF9" x="-90" y="-30" width="20" height="60" rx="2"/>
+        </g>
+        
+        <!-- Decorative Elements -->
+        <circle fill="#E3F2FD" cx="100" cy="100" r="50"/>
+        <circle fill="#E3F2FD" cx="700" cy="500" r="70"/>
+        <circle fill="#BBDEFB" cx="650" cy="150" r="40"/>
+        <circle fill="#BBDEFB" cx="150" cy="450" r="60"/>
+    </g>
+</svg>

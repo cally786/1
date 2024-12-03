@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Mis Transacciones</h2>
+    
+    {% if transactions %}
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Fecha</th>
+                    <th>Estado</th>
+                    <th>Vendedor</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.id }}</td>
+                    <td>{{ transaction.equipment.name }}</td>
+                    <td>{{ transaction.quantity }}</td>
+                    <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <span class="badge {% if transaction.status == 'Pendiente' %}bg-warning{% elif transaction.status == 'Completado' %}bg-success{% elif transaction.status == 'Cancelado' %}bg-danger{% endif %}">
+                            {{ transaction.status }}
+                        </span>
+                    </td>
+                    <td>{{ transaction.seller.username }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        No tienes transacciones registradas.
+    </div>
+    {% endif %}
+    
+    <div class="mt-3">
+        <a href="{{ url_for('index') }}" class="btn btn-primary">Volver al Inicio</a>
+    </div>
+</div>
+{% endblock %}

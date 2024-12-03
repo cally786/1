@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>Mis Transacciones</h2>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <ul class="nav nav-tabs" id="transactionTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="all-tab" data-bs-toggle="tab" href="#all" role="tab">
+                        Todas
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="purchases-tab" data-bs-toggle="tab" href="#purchases" role="tab">
+                        Mis Reservas
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="sales-tab" data-bs-toggle="tab" href="#sales" role="tab">
+                        Mis Ventas
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="tab-content" id="transactionTabContent">
+        <!-- Todas las transacciones -->
+        <div class="tab-pane fade show active" id="all" role="tabpanel">
+            {% include "transactions/partials/_transaction_list.html" with context %}
+        </div>
+
+        <!-- Mis Reservas -->
+        <div class="tab-pane fade" id="purchases" role="tabpanel">
+            {% with transactions = transactions|selectattr("buyer_id", "equalto", current_user.id)|list %}
+                {% include "transactions/partials/_transaction_list.html" with context %}
+            {% endwith %}
+        </div>
+
+        <!-- Mis Ventas -->
+        <div class="tab-pane fade" id="sales" role="tabpanel">
+            {% with transactions = transactions|selectattr("seller_id", "equalto", current_user.id)|list %}
+                {% include "transactions/partials/_transaction_list.html" with context %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Activar los tabs de Bootstrap
+    var triggerTabList = [].slice.call(document.querySelectorAll('#transactionTabs a'))
+    triggerTabList.forEach(function(triggerEl) {
+        var tabTrigger = new bootstrap.Tab(triggerEl)
+        triggerEl.addEventListener('click', function(event) {
+            event.preventDefault()
+            tabTrigger.show()
+        })
+    })
+})
+</script>
+{% endblock %}

@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Agregar Nuevo Equipo</h4>
+                </div>
+                <div class="card-body">
+                    <form id="equipmentForm" method="POST" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="company" class="form-label">Empresa</label>
+                                <input type="text" class="form-control" id="company" name="company" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Nombre del Equipo</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="model" class="form-label">Modelo</label>
+                                <input type="text" class="form-control" id="model" name="model" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="category_id" class="form-label">Categoría</label>
+                                <select class="form-select" id="category_id" name="category_id" required>
+                                    <option value="">Seleccione una categoría</option>
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="serial_number" class="form-label">Número de Serie</label>
+                                <input type="text" class="form-control" id="serial_number" name="serial_number" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="location" class="form-label">Ubicación</label>
+                                <select class="form-select" id="location" name="location" required>
+                                    <option value="">Seleccionar ubicación</option>
+                                    <option value="São Paulo">São Paulo</option>
+                                    <option value="Guarulhos">Guarulhos</option>
+                                    <option value="Osasco">Osasco</option>
+                                    <option value="Santo André">Santo André</option>
+                                    <option value="São Bernardo do Campo">São Bernardo do Campo</option>
+                                    <option value="São Caetano do Sul">São Caetano do Sul</option>
+                                    <option value="Diadema">Diadema</option>
+                                    <option value="Mauá">Mauá</option>
+                                    <option value="Taboão da Serra">Taboão da Serra</option>
+                                    <option value="Embu das Artes">Embu das Artes</option>
+                                    <option value="Itaquaquecetuba">Itaquaquecetuba</option>
+                                    <option value="Barueri">Barueri</option>
+                                    <option value="Cotia">Cotia</option>
+                                    <option value="Ferraz de Vasconcelos">Ferraz de Vasconcelos</option>
+                                    <option value="Francisco Morato">Francisco Morato</option>
+                                    <option value="Franco da Rocha">Franco da Rocha</option>
+                                    <option value="Carapicuíba">Carapicuíba</option>
+                                    <option value="Poá">Poá</option>
+                                    <option value="Ribeirão Pires">Ribeirão Pires</option>
+                                    <option value="Suzano">Suzano</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="quantity" class="form-label">Cantidad</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" required min="0">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="unit_price" class="form-label">Precio Unitario ($)</label>
+                                <input type="number" class="form-control" id="unit_price" name="unit_price" required min="0" step="0.01">
+                            </div>
+                        </div>
+
+                        {% if current_user.is_admin %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Estado</label>
+                                <select class="form-select" id="status" name="status" required>
+                                    <option value="En revisión">En revisión</option>
+                                    <option value="Revisado">Revisado</option>
+                                    <option value="Publicado">Publicado</option>
+                                    <option value="Rechazado">Rechazado</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Notas</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="image" class="form-label">Imagen</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Equipo
+                            </button>
+                            <a href="{{ url_for('main.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('equipmentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Mostrar indicador de carga
+    Swal.fire({
+        title: 'Guardando...',
+        text: 'Por favor espere mientras se procesa la solicitud',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        allowEnterKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Crear FormData con los datos del formulario
+    const formData = new FormData(this);
+    
+    // Enviar la solicitud al servidor
+    fetch("{{ url_for('equipment_creation.add_equipment') }}", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                title: '¡Éxito!',
+                text: data.message,
+                icon: 'success',
+                confirmButtonText: 'OK'
+            }).then((result) => {
+                if (result.isConfirmed && data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            });
+        } else {
+            Swal.fire({
+                title: '¡Error!',
+                text: data.message,
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: '¡Error!',
+            text: 'Ha ocurrido un error al procesar la solicitud. Por favor, inténtelo de nuevo.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    });
+});
+</script>
+{% endblock %}

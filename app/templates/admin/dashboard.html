@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Panel de Control</h2>
+    
+    <!-- Stats Cards -->
+    <div class="row mt-4">
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('equipment.published_equipment') }}" class="text-decoration-none">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Equipos Publicados</h5>
+                        <p class="card-text display-4">{{ stats.available_equipment }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('admin.filter_equipment', status='En revisión') }}" class="text-decoration-none">
+                <div class="card bg-warning text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">En Revisión</h5>
+                        <p class="card-text display-4">{{ stats.in_review_equipment }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4 mb-3">
+            <a href="{{ url_for('admin.filter_equipment', status='Rechazado') }}" class="text-decoration-none">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Rechazados</h5>
+                        <p class="card-text display-4">{{ stats.rejected_equipment }}</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Equipment List -->
+    <div class="row mt-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Lista de Equipos</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Categoría</th>
+                                    <th>Estado</th>
+                                    <th>Creador</th>
+                                    <th>Fecha</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for equipment in equipment_list %}
+                                <tr>
+                                    <td>{{ equipment.name }}</td>
+                                    <td>{{ equipment.category.name if equipment.category else 'Sin categoría' }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ status_colors.get(equipment.status, 'secondary') }}">
+                                            {{ equipment.status }}
+                                        </span>
+                                    </td>
+                                    <td>{{ equipment.creator.username }}</td>
+                                    <td>{{ equipment.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <a href="{{ url_for('equipment.view_equipment', id=equipment.id) }}" 
+                                           class="btn btn-sm btn-primary">
+                                            Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

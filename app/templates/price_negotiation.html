@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Cambio de Precio - {{ equipment.name }}</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <h5>Detalles del Cambio de Precio:</h5>
+                <p>El administrador ha propuesto un cambio en el precio de tu producto.</p>
+                <ul>
+                    <li><strong>Precio Anterior:</strong> ${{ "%.2f"|format(negotiation.old_price) }}</li>
+                    <li><strong>Precio Propuesto:</strong> ${{ "%.2f"|format(negotiation.new_price) }}</li>
+                    <li><strong>Fecha del Cambio:</strong> {{ equipment.price_change_date.strftime('%Y-%m-%d %H:%M:%S') }}</li>
+                </ul>
+            </div>
+
+            <div class="mt-4">
+                <h5>¿Aceptas este cambio de precio?</h5>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-success" onclick="respondToPrice(true)">
+                        <i class="fas fa-check"></i> Aceptar
+                    </button>
+                    <button class="btn btn-danger" onclick="showRejectionForm()">
+                        <i class="fas fa-times"></i> Rechazar
+                    </button>
+                </div>
+            </div>
+
+            <div id="rejectionForm" class="mt-4" style="display: none;">
+                <div class="form-group">
+                    <label for="rejectionReason">Por favor, explica por qué rechazas el cambio de precio:</label>
+                    <textarea class="form-control" id="rejectionReason" rows="3" required></textarea>
+                </div>
+                <button class="btn btn-primary mt-2" onclick="respondToPrice(false)">
+                    Enviar Respuesta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showRejectionForm() {
+    document.getElementById('rejectionForm').style.display = 'block';
+}
+
+function respondToPrice(accepted) {
+    let data = {
+        accepted: accepted
+    };
+
+    if (!accepted) {
+        const reason = document.getElementById('rejectionReason').value.trim();
+        if (!reason) {
+            alert('Por favor, proporciona un motivo para el rechazo.');
+            return;
+        }
+        data.rejection_reason = reason;
+    }
+
+    fetch(`/api/equipment/{{ equipment.id }}/price/response`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message);
+            window.location.href = `/equipment/${equipment.id}`;
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al procesar la respuesta');
+    });
+}
+</script>
+{% endblock %}

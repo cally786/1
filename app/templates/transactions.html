@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if current_user.is_admin %}
+        <h2>Todas las Transacciones</h2>
+        {% if all_transactions %}
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Equipo</th>
+                            <th>Vendedor</th>
+                            <th>Comprador</th>
+                            <th>Cantidad</th>
+                            <th>Precio Unitario</th>
+                            <th>Precio Total</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for transaction in all_transactions %}
+                            <tr>
+                                <td>{{ transaction.id }}</td>
+                                <td>
+                                    <a href="{{ url_for('equipment.equipment_detail', equipment_id=transaction.equipment.id) }}">
+                                        {{ transaction.equipment.name }}
+                                    </a>
+                                </td>
+                                <td>{{ transaction.seller.username }}</td>
+                                <td>{{ transaction.buyer.username }}</td>
+                                <td>{{ transaction.quantity }}</td>
+                                <td>${{ "%.2f"|format(transaction.unit_price) }}</td>
+                                <td>${{ "%.2f"|format(transaction.total_price) }}</td>
+                                <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.status == 'Pendiente' %}bg-warning{% elif transaction.status == 'Completado' %}bg-success{% elif transaction.status == 'Cancelado' %}bg-danger{% endif %}">
+                                        {{ transaction.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if transaction.status == 'Pendiente' %}
+                                        {% if current_user.is_admin %}
+                                        <form action="{{ url_for('transaction.complete_transaction', transaction_id=transaction.id) }}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-success btn-sm" onclick="return confirm('¿Estás seguro de que deseas marcar esta transacción como completada?')">
+                                                Completar
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        {% if current_user.is_admin or current_user.id == transaction.buyer_id or current_user.id == transaction.seller_id %}
+                                        <form action="{{ url_for('transaction.cancel_transaction', transaction_id=transaction.id) }}" method="post" style="display: inline;">
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas cancelar esta transacción?')">
+                                                Cancelar
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">No hay transacciones registradas.</div>
+        {% endif %}
+    {% else %}
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Mis Compras</h3>
+                {% if purchases %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Vendedor</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Precio Total</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in purchases %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('equipment.equipment_detail', equipment_id=transaction.equipment.id) }}">
+                                                {{ transaction.equipment.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ transaction.seller.username }}</td>
+                                        <td>{{ transaction.quantity }}</td>
+                                        <td>${{ "%.2f"|format(transaction.unit_price) }}</td>
+                                        <td>${{ "%.2f"|format(transaction.total_price) }}</td>
+                                        <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <span class="badge {% if transaction.status == 'Pendiente' %}bg-warning{% elif transaction.status == 'Completado' %}bg-success{% elif transaction.status == 'Cancelado' %}bg-danger{% endif %}">
+                                                {{ transaction.status }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">No tienes compras registradas.</div>
+                {% endif %}
+            </div>
+
+            <div class="col-md-6">
+                <h3>Mis Ventas</h3>
+                {% if sales %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Equipo</th>
+                                    <th>Comprador</th>
+                                    <th>Cantidad</th>
+                                    <th>Precio Unitario</th>
+                                    <th>Precio Total</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in sales %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ url_for('equipment.equipment_detail', equipment_id=transaction.equipment.id) }}">
+                                                {{ transaction.equipment.name }}
+                                            </a>
+                                        </td>
+                                        <td>{{ transaction.buyer.username }}</td>
+                                        <td>{{ transaction.quantity }}</td>
+                                        <td>${{ "%.2f"|format(transaction.unit_price) }}</td>
+                                        <td>${{ "%.2f"|format(transaction.total_price) }}</td>
+                                        <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <span class="badge {% if transaction.status == 'Pendiente' %}bg-warning{% elif transaction.status == 'Completado' %}bg-success{% elif transaction.status == 'Cancelado' %}bg-danger{% endif %}">
+                                                {{ transaction.status }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info">No tienes ventas registradas.</div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
