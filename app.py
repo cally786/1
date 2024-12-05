@@ -29,12 +29,20 @@ from models.models import User, Equipment, Transaction, Notification
 from utils.helpers import requires_admin, allowed_file, url_params
 
 # Importar rutas
-from routes.auth_routes import *
-from routes.main_routes import *
-from routes.equipment_routes import *
-from routes.user_routes import *
-from routes.transaction_routes import *
-from routes.notification_routes import *
+from app.routes.auth_routes import auth
+from app.routes.main_routes import main
+from app.routes.equipment_routes import equipment
+from app.routes.user_routes import user
+from app.routes.transaction_routes import transaction
+from app.routes.notification_routes import notification
+
+# Registrar blueprints
+app.register_blueprint(auth)
+app.register_blueprint(main)
+app.register_blueprint(equipment)
+app.register_blueprint(user)
+app.register_blueprint(transaction)
+app.register_blueprint(notification)
 
 def init_db():
     """Initialize the database."""

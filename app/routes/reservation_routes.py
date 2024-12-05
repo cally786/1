@@ -22,13 +22,27 @@ def reserve_equipment(equipment_id):
         return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
     
     try:
+        # Obtener y validar la cantidad
         quantity = int(request.form.get('quantity', 1))
+        quantity_confirmation = int(request.form.get('quantity_confirmation', 0))
+        
+        print(f"DEBUG - Cantidad solicitada: {quantity}, Confirmación: {quantity_confirmation}")
+        
+        # Verificar que las cantidades coincidan
+        if quantity != quantity_confirmation:
+            print(f"DEBUG - Error: Las cantidades no coinciden")
+            flash('Error en la cantidad solicitada', 'danger')
+            return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
         
         # Verificar cantidad disponible usando el nuevo método
         can_reserve, message = equipment.check_quantity_status(quantity)
         if not can_reserve:
+            print(f"DEBUG - No se puede reservar: {message}")
             flash(message, 'danger')
             return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
+        
+        # Guardar cantidad anterior para logging
+        previous_quantity = equipment.available_quantity
         
         # Crear la transacción
         transaction = Transaction(
@@ -41,8 +55,10 @@ def reserve_equipment(equipment_id):
         )
         
         # Actualizar cantidad disponible
-        equipment.available_quantity -= quantity
+        equipment.available_quantity = max(0, equipment.available_quantity - quantity)
         equipment.update_status_based_on_quantity()
+        
+        print(f"DEBUG - Reserva: ID={equipment_id}, Anterior={previous_quantity}, Solicitada={quantity}, Nueva={equipment.available_quantity}")
         
         db.session.add(transaction)
         

@@ -14,7 +14,35 @@ main = Blueprint('main', __name__)
 def index():
     # Si el usuario es admin, redirigir al dashboard
     if current_user.is_authenticated and current_user.is_admin:
-        return render_template('admin/dashboard.html')
+        # Obtener conteo de equipos por estado
+        status_counts = db.session.query(
+            Equipment.status, 
+            func.count(Equipment.id)
+        ).group_by(Equipment.status).all()
+        
+        # Asegurar que todos los estados posibles estén incluidos
+        all_statuses = ['En revisión', 'Revisado', 'Publicado', 'Rechazado', 'Agotado', 'Disponible', 'En préstamo']
+        status_stats = {status: 0 for status in all_statuses}  # Inicializar todos en 0
+        
+        # Actualizar con los conteos reales
+        for status, count in status_counts:
+            if status in status_stats:
+                status_stats[status] = count
+        
+        stats = {
+            'total_equipment': sum(status_stats.values()),
+            'status_counts': status_stats,
+            'pending_transactions': Transaction.query.filter_by(status='Pendiente').count(),
+            'active_transactions': Transaction.query.filter_by(status='Activo').count(),
+            'total_users': User.query.filter_by(is_admin=False).count()
+        }
+        
+        # Obtener transacciones pendientes
+        pending_transactions = Transaction.query.filter_by(status='Pendiente').all()
+        
+        return render_template('index.html', 
+                             stats=stats,
+                             pending_transactions=pending_transactions)
     
     # Para usuarios normales y no autenticados, mostrar landing page
     equipment_count = Equipment.query.filter_by(status='Disponible').count()

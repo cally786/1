@@ -32,29 +32,18 @@ def reserve_equipment(equipment_id):
         flash('No hay suficiente cantidad disponible.', 'error')
         return redirect(url_for('equipment_detail', equipment_id=equipment_id))
 
-    # Crear la transacción
-    transaction = Transaction(
-        equipment_id=equipment.id,
-        buyer_id=current_user.id,
-        seller_id=equipment.creator_id,
-        quantity=quantity,
-        unit_price=equipment.unit_price,
-        status='Pendiente'
-    )
-
     # Actualizar la cantidad disponible
     equipment.available_quantity -= quantity
-
-    # Crear notificación para el vendedor
+    
+    # Crear notificación para el vendedor sobre la reserva
     notification = Notification(
         recipient_id=equipment.creator_id,
         message=f'Nueva solicitud de reserva para {equipment.name} por {current_user.username}',
         type='reservation',
-        transaction_id=transaction.id
+        transaction_id=None
     )
 
     try:
-        db.session.add(transaction)
         db.session.add(notification)
         db.session.commit()
         flash('Solicitud de reserva enviada correctamente.', 'success')

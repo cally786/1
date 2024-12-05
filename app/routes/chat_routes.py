@@ -1,12 +1,29 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, abort
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import login_required, current_user
-from app import db
+from sqlalchemy import and_, or_
 from app.models.chat import Chat, ChatMessage
+from app import db
 from app.utils.decorators import requires_admin
-from datetime import datetime
-from app.models.models import User
+from app.utils.chat_utils import (
+    get_unread_messages_count,
+    get_pending_chats_count,
+    get_active_chats,
+    get_pending_chats
+)
 
-chat = Blueprint('chat', __name__)
+chat = Blueprint('chat', __name__, url_prefix='/chat')
+
+# Make chat utilities available to all templates
+@chat.app_context_processor
+def inject_chat_utils():
+    return {
+        'injected_functions': {
+            'get_unread_messages_count': get_unread_messages_count,
+            'get_pending_chats_count': get_pending_chats_count,
+            'get_active_chats': get_active_chats,
+            'get_pending_chats': get_pending_chats
+        }
+    }
 
 @chat.route('/')
 @login_required
@@ -32,30 +49,19 @@ def pending_chats():
 @chat.route('/new', methods=['POST'])
 @login_required
 def new_chat():
-    if current_user.is_admin:
-        return jsonify({'success': False, 'message': 'Los administradores no pueden crear chats'}), 403
-    
     title = request.form.get('title')
     if not title:
-        return jsonify({'success': False, 'message': 'El título es requerido'}), 400
+        return jsonify({'success': False, 'message': 'El título es requerido'})
     
     chat = Chat(
         title=title,
         user_id=current_user.id,
         status='Pendiente'
     )
+    db.session.add(chat)
+    db.session.commit()
     
-    try:
-        db.session.add(chat)
-        db.session.commit()
-        return jsonify({
-            'success': True,
-            'chat_id': chat.id,
-            'message': 'Chat creado exitosamente'
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+    return jsonify({'success': True, 'chat_id': chat.id})
 
 @chat.route('/<int:chat_id>/accept', methods=['POST'])
 @login_required
@@ -97,36 +103,24 @@ def chat_messages(chat_id):
                     'message': 'Este chat está cerrado'
                 }), 400
             
-            # Si es usuario normal, verificar que el chat esté asignado
-            if not current_user.is_admin and chat.status == 'Pendiente':
-                return jsonify({
-                    'success': False,
-                    'message': 'Debes esperar a que un administrador acepte el chat'
-                }), 400
-            
             content = request.form.get('content')
             if not content:
                 return jsonify({
                     'success': False,
-                    'message': 'El mensaje no puede estar vacío'
+                    'message': 'El contenido del mensaje es requerido'
                 }), 400
             
-            message = ChatMessage(
-                chat_id=chat.id,
-                sender_id=current_user.id,
-                content=content,
-                is_read=False
-            )
-            db.session.add(message)
-            db.session.commit()
+            # Usar el nuevo método add_message
+            message = chat.add_message(current_user.id, content)
             
             return jsonify({
                 'success': True,
                 'message': {
                     'id': message.id,
                     'content': message.content,
-                    'sender': current_user.username,
-                    'created_at': message.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                    'sender_id': message.sender_id,
+                    'sender_email': message.sender.email,
+                    'created_at': message.created_at.strftime('%H:%M')
                 }
             })
             
@@ -137,65 +131,34 @@ def chat_messages(chat_id):
                 'message': str(e)
             }), 500
     
-    # GET request
-    messages = ChatMessage.query.filter_by(chat_id=chat.id)\
-        .order_by(ChatMessage.created_at.asc()).all()
-    
-    # Marcar como leídos los mensajes que no son del usuario actual
+    # Marcar mensajes como leídos
     unread_messages = ChatMessage.query.filter_by(
-        chat_id=chat.id,
+        chat_id=chat_id,
         is_read=False
     ).filter(ChatMessage.sender_id != current_user.id).all()
     
     for message in unread_messages:
-        message.is_read = True
+        message.mark_as_read()
     
-    if unread_messages:
-        db.session.commit()
+    messages = ChatMessage.query.filter_by(chat_id=chat_id)\
+        .order_by(ChatMessage.created_at.asc()).all()
     
-    return render_template('chat/messages.html', chat=chat, messages=messages)
+    return render_template('chat/messages.html',
+                         chat=chat,
+                         messages=messages)
 
-@chat.route('/<int:chat_id>/close', methods=['POST'])
+@chat.route('/unread/count')
 @login_required
-@requires_admin
-def close_chat(chat_id):
-    chat = Chat.query.get_or_404(chat_id)
-    
-    if chat.status == 'Cerrado':
-        return jsonify({'success': False, 'message': 'Este chat ya está cerrado'}), 400
-    
-    if chat.admin_id != current_user.id:
-        return jsonify({'success': False, 'message': 'Solo el administrador asignado puede cerrar el chat'}), 403
-    
-    try:
-        chat.status = 'Cerrado'
-        db.session.commit()
-        return jsonify({'success': True, 'message': 'Chat cerrado exitosamente'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+def unread_count():
+    """JSON endpoint for unread messages count"""
+    return jsonify({'count': get_unread_messages_count()})
 
 @chat.route('/pending/count')
 @login_required
-def pending_chats_count():
-    try:
-        if not current_user.is_admin:
-            return jsonify({
-                'success': True,
-                'count': 0
-            })
-        
-        # Contar todos los chats pendientes para admins
-        count = Chat.query.filter_by(status='Pendiente').count()
-        return jsonify({
-            'success': True,
-            'count': count
-        })
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': str(e)
-        }), 500
+@requires_admin
+def pending_count():
+    """JSON endpoint for pending chats count"""
+    return jsonify({'count': get_pending_chats_count()})
 
 @chat.route('/active')
 @login_required
@@ -209,31 +172,28 @@ def active_chats():
     
     return render_template('chat/active_chats.html', chats=chats)
 
-@chat.route('/unread/count')
+@chat.route('/<int:chat_id>/close', methods=['POST'])
 @login_required
-def unread_messages_count():
+@requires_admin
+def close_chat(chat_id):
+    """Close a chat (admin only)"""
+    chat = Chat.query.get_or_404(chat_id)
+    
+    # Verificar que el admin está asignado a este chat
+    if chat.admin_id != current_user.id:
+        return jsonify({
+            'success': False,
+            'message': 'No tienes permiso para cerrar este chat'
+        }), 403
+    
     try:
-        if current_user.is_admin:
-            # Para admins, contar mensajes no leídos en chats activos asignados
-            unread_count = ChatMessage.query.join(Chat)\
-                .filter(Chat.admin_id == current_user.id)\
-                .filter(Chat.status == 'Activo')\
-                .filter(ChatMessage.is_read == False)\
-                .filter(ChatMessage.sender_id != current_user.id)\
-                .count()
-        else:
-            # Para usuarios normales, contar mensajes no leídos en sus chats
-            unread_count = ChatMessage.query.join(Chat)\
-                .filter(Chat.user_id == current_user.id)\
-                .filter(ChatMessage.is_read == False)\
-                .filter(ChatMessage.sender_id != current_user.id)\
-                .count()
-        
+        chat.close()
         return jsonify({
             'success': True,
-            'count': unread_count
+            'message': 'Chat cerrado exitosamente'
         })
     except Exception as e:
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': str(e)

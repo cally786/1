@@ -7,8 +7,8 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-6">
-                    <h1 class="display-4 fw-bold mb-4">Gestiona tu Inventario de Manera Eficiente</h1>
-                    <p class="lead mb-4">Descubre una forma más inteligente de administrar tus equipos y recursos con nuestra plataforma integral.</p>
+                    <h1 class="display-4 fw-bold mb-4">World Wifi I&D</h1>
+                    <p class="lead mb-4">Conectamos empresas en una red confiable para optimizar el intercambio de inventario, asegurando calidad, transparencia y beneficios mutuos.</p>
                     {% if not current_user.is_authenticated %}
                     <div class="d-flex gap-3">
                         <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg">Iniciar Sesión</a>
@@ -37,7 +37,7 @@
                             </div>
                             <h3 class="card-title h5">Gestión de Equipos</h3>
                             <p class="card-text">Visualiza y gestiona todos tus equipos en un solo lugar. Mantén un registro detallado de cada artículo.</p>
-                            <a href="{{ url_for('equipment.published_equipment') }}" class="btn btn-outline-primary">Ver Equipos</a>
+                            <a href="my-equipment" class="btn btn-outline-primary">Ver Equipos</a>
                         </div>
                     </div>
                 </div>
@@ -49,10 +49,10 @@
                             <div class="feature-icon bg-success bg-gradient text-white rounded-circle p-3 mb-3">
                                 <i class="fas fa-handshake fa-2x"></i>
                             </div>
-                            <h3 class="card-title h5">Sistema de Préstamos</h3>
-                            <p class="card-text">Solicita y gestiona préstamos de equipos de manera sencilla. Recibe notificaciones sobre el estado de tus solicitudes.</p>
+                            <h3 class="card-title h5">Adquisiones de equipos</h3>
+                            <p class="card-text">Realiza transacciones de equipos a precios justos y Sal de inventario que no usas con facilidad</p>
                             {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('transaction.my_transactions') }}" class="btn btn-outline-success">Mis Préstamos</a>
+                            <a href="{{ url_for('published.published_equipment') }}" class="btn btn-outline-success">Mira equipos disponibles a transaccionar</a>
                             {% endif %}
                         </div>
                     </div>
@@ -86,28 +86,28 @@
                     <div class="text-center">
                         <div class="step-circle bg-primary text-white mb-3">1</div>
                         <h4>Explora</h4>
-                        <p>Navega por nuestro catálogo de equipos disponibles</p>
+                        <p>Navega por nuestro catálogo de equipos disponibles y publica tus propios</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="text-center">
                         <div class="step-circle bg-primary text-white mb-3">2</div>
-                        <h4>Solicita</h4>
-                        <p>Realiza tu solicitud de préstamo en línea</p>
+                        <h4>Compra o Vende</h4>
+                        <p>Realiza la reserva del producto en linea, o recibe solicitudes por tus productos</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="text-center">
                         <div class="step-circle bg-primary text-white mb-3">3</div>
-                        <h4>Recibe</h4>
-                        <p>Recoge tu equipo en el punto designado</p>
+                        <h4>Visita</h4>
+                        <p>Visita nuestro centro de experiencia para ejecutar la transaccion</p>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="text-center">
                         <div class="step-circle bg-primary text-white mb-3">4</div>
-                        <h4>Devuelve</h4>
-                        <p>Regresa el equipo al finalizar el período</p>
+                        <h4>Crece con nosotros</h4>
+                        <p>Sea por aumento de flujo de caja, o por la adquision de nuevos equipos, confiamos en que tu vas a crecer</p>
                     </div>
                 </div>
             </div>

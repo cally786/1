@@ -7,7 +7,8 @@ from app.utils.helpers import requires_admin
 from app import db
 from datetime import datetime, timedelta
 
-transaction = Blueprint('transaction', __name__)
+# Cambiar la definición del blueprint
+transaction = Blueprint('transaction', __name__, url_prefix='/transaction')
 
 @transaction.route('/equipment/<int:equipment_id>/reserve', methods=['POST'])
 @login_required
@@ -17,12 +18,17 @@ def reserve_equipment(equipment_id):
     # Verificar que el equipo esté publicado
     if equipment.status != 'Publicado':
         flash('Este equipo no está disponible para reserva.', 'error')
-        return redirect(url_for('equipment.detail', equipment_id=equipment_id))
+        return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
+    
+    # Verificar que haya unidades disponibles
+    if equipment.available_quantity <= 0:
+        flash('No hay unidades disponibles de este equipo.', 'error')
+        return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
     
     # Verificar que el usuario no sea el creador
     if equipment.creator_id == current_user.id:
         flash('No puedes reservar tu propio equipo.', 'error')
-        return redirect(url_for('equipment.detail', equipment_id=equipment_id))
+        return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
     
     # Verificar que no haya una transacción pendiente
     pending_transaction = Transaction.query.filter_by(
@@ -33,15 +39,27 @@ def reserve_equipment(equipment_id):
     
     if pending_transaction:
         flash('Ya tienes una reserva pendiente para este equipo.', 'error')
-        return redirect(url_for('equipment.detail', equipment_id=equipment_id))
+        return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
     
     try:
+        # Obtener la cantidad del formulario
+        quantity = int(request.form.get('quantity', 1))
+        
+        # Validar la cantidad
+        if quantity <= 0:
+            flash('La cantidad debe ser mayor a 0.', 'error')
+            return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
+            
+        if quantity > equipment.available_quantity:
+            flash(f'Solo hay {equipment.available_quantity} unidades disponibles.', 'error')
+            return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
+        
         # Crear la transacción
         transaction = Transaction(
             equipment_id=equipment_id,
             buyer_id=current_user.id,
             seller_id=equipment.creator_id,
-            quantity=1,  # Por ahora solo permitimos reservar uno
+            quantity=quantity,  # Usar la cantidad del formulario
             unit_price=equipment.unit_price,
             status='Pendiente',
             created_at=datetime.utcnow()
@@ -50,13 +68,17 @@ def reserve_equipment(equipment_id):
         # Crear notificación para el vendedor
         notification = Notification(
             recipient_id=equipment.creator_id,
-            message=f'Tienes una nueva solicitud de reserva para "{equipment.name}"',
+            message=f'Tienes una nueva solicitud de reserva para "{equipment.name}" - Cantidad: {quantity}',
             type='reservation',
             equipment_id=equipment_id
         )
         
         db.session.add(transaction)
         db.session.add(notification)
+        
+        # Actualizar la cantidad disponible
+        equipment.available_quantity -= quantity
+        
         db.session.commit()
         
         flash('Solicitud de reserva enviada exitosamente.', 'success')
@@ -64,7 +86,7 @@ def reserve_equipment(equipment_id):
         db.session.rollback()
         flash(f'Error al procesar la reserva: {str(e)}', 'error')
     
-    return redirect(url_for('equipment.detail', equipment_id=equipment_id))
+    return redirect(url_for('equipment.equipment_detail', equipment_id=equipment_id))
 
 @transaction.route('/transactions/<int:transaction_id>')
 @login_required
@@ -80,8 +102,8 @@ def transaction_detail(transaction_id):
 def approve_transaction(transaction_id):
     transaction = Transaction.query.get_or_404(transaction_id)
     
-    # Verificar que el usuario sea el vendedor
-    if transaction.seller_id != current_user.id:
+    # Verificar que el usuario sea el vendedor o un administrador
+    if not current_user.is_admin and transaction.seller_id != current_user.id:
         flash('No tienes permiso para aprobar esta transacción.', 'error')
         return redirect(url_for('transaction.transaction_detail', transaction_id=transaction_id))
     
@@ -115,18 +137,23 @@ def approve_transaction(transaction_id):
 def reject_transaction(transaction_id):
     transaction = Transaction.query.get_or_404(transaction_id)
     
-    # Verificar que el usuario sea el vendedor
-    if transaction.seller_id != current_user.id:
+    # Verificar que el usuario sea el vendedor o un administrador
+    if not current_user.is_admin and transaction.seller_id != current_user.id:
         flash('No tienes permiso para rechazar esta transacción.', 'error')
-        return redirect(url_for('transaction.transaction_detail', transaction_id=transaction_id))
+        return redirect(url_for('transaction.list_transactions'))
     
     if transaction.status != 'Pendiente':
         flash('Esta transacción ya ha sido procesada.', 'error')
-        return redirect(url_for('transaction.transaction_detail', transaction_id=transaction_id))
+        return redirect(url_for('transaction.list_transactions'))
     
     try:
         transaction.status = 'Rechazado'
         transaction.processed_at = datetime.utcnow()
+        
+        # Actualizar el estado del equipo si es necesario
+        equipment = transaction.equipment
+        if hasattr(equipment, 'process_transaction_completion'):
+            equipment.process_transaction_completion(transaction)
         
         # Notificar al comprador
         notification = Notification(
@@ -143,7 +170,7 @@ def reject_transaction(transaction_id):
         db.session.rollback()
         flash(f'Error al rechazar la transacción: {str(e)}', 'error')
     
-    return redirect(url_for('transaction.transaction_detail', transaction_id=transaction_id))
+    return redirect(url_for('transaction.list_transactions'))
 
 @transaction.route('/transactions/<int:transaction_id>/cancel', methods=['POST'])
 @login_required

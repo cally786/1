@@ -13,6 +13,27 @@ from app import db
 def add_equipment():
     if request.method == 'POST':
         try:
+            # Validar que todos los campos requeridos estén presentes
+            required_fields = ['company', 'name', 'model', 'category', 'serial_number', 'quantity', 'unit_price', 'location']
+            for field in required_fields:
+                if field not in request.form or not request.form[field]:
+                    raise ValueError(f'El campo {field} es requerido.')
+
+            # Validar tipos de datos
+            try:
+                quantity = int(request.form['quantity'])
+                if quantity < 0:
+                    raise ValueError('La cantidad debe ser un número positivo.')
+            except ValueError:
+                raise ValueError('La cantidad debe ser un número válido.')
+
+            try:
+                unit_price = float(request.form['unit_price'])
+                if unit_price < 0:
+                    raise ValueError('El precio unitario debe ser un número positivo.')
+            except ValueError:
+                raise ValueError('El precio unitario debe ser un número válido.')
+
             # Verificar si ya existe un equipo con la misma categoría y número de serie
             existing_equipment = Equipment.query.filter_by(
                 category=request.form['category'],
@@ -20,13 +41,7 @@ def add_equipment():
             ).first()
             
             if existing_equipment:
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return jsonify({
-                        'success': False,
-                        'message': 'Ya existe un equipo con la misma categoría y número de serie.'
-                    })
-                flash('Ya existe un equipo con la misma categoría y número de serie.', 'danger')
-                return render_template('add_equipment.html')
+                raise ValueError('Ya existe un equipo con la misma categoría y número de serie.')
             
             # Crear nuevo equipo
             equipment = Equipment(
@@ -35,10 +50,10 @@ def add_equipment():
                 model=request.form['model'],
                 category=request.form['category'],
                 serial_number=request.form['serial_number'],
-                quantity=int(request.form['quantity']),
-                unit_price=float(request.form['unit_price']),
+                quantity=quantity,
+                unit_price=unit_price,
                 location=request.form['location'],
-                notes=request.form['notes'],
+                notes=request.form.get('notes', ''),
                 creator_id=current_user.id
             )
             
@@ -71,14 +86,23 @@ def add_equipment():
             flash('Equipo agregado exitosamente', 'success')
             return redirect(url_for('index'))
             
+        except ValueError as e:
+            db.session.rollback()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False,
+                    'message': str(e)
+                })
+            flash(str(e), 'danger')
+            return render_template('add_equipment.html')
         except Exception as e:
             db.session.rollback()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return jsonify({
                     'success': False,
-                    'message': 'Ha ocurrido un error al procesar la solicitud: ' + str(e)
+                    'message': f'Error inesperado: {str(e)}'
                 })
-            flash('Ha ocurrido un error al procesar la solicitud.', 'danger')
+            flash(f'Error inesperado: {str(e)}', 'danger')
             return render_template('add_equipment.html')
     
     return render_template('add_equipment.html')

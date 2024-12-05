@@ -28,6 +28,9 @@ def all_equipment():
         if field == 'creator':
             creator_ids = [user.id for user in User.query.filter(User.username.in_(values)).all()]
             query = query.filter(Equipment.creator_id.in_(creator_ids))
+        elif field == 'category':
+            category_ids = [cat.id for cat in Category.query.filter(Category.name.in_(values)).all()]
+            query = query.filter(Equipment.category_id.in_(category_ids))
         else:
             query = query.filter(getattr(Equipment, field).in_(values))
 
@@ -55,86 +58,104 @@ def all_equipment():
 @equipment.route('/add_equipment', methods=['GET', 'POST'])
 @login_required
 def add_equipment():
-    categories = Category.query.order_by(Category.name).all()
     if request.method == 'POST':
         try:
-            # Obtener datos del formulario
-            name = request.form.get('name')
-            description = request.form.get('description')
-            quantity = request.form.get('quantity')
-            category_id = request.form.get('category_id')
-            if not category_id:
-                flash('Por favor seleccione una categoría', 'error')
-                return redirect(url_for('equipment.add_equipment'))
+            # Verificar campos requeridos
+            required_fields = ['name', 'company', 'model', 'category', 'serial_number', 'quantity', 'unit_price', 'location']
+            for field in required_fields:
+                if field not in request.form or not request.form[field].strip():
+                    raise ValueError(f'El campo {field} es requerido')
 
-            category = Category.query.get(category_id)
-            if not category:
-                flash('La categoría seleccionada no existe', 'error')
-                return redirect(url_for('equipment.add_equipment'))
-
-            company = request.form.get('company')
-            model = request.form.get('model')
-            serial_number = request.form.get('serial_number')
-            unit_price = request.form.get('unit_price')
-            notes = request.form.get('notes')
-            location = request.form.get('location')
-
-            # Validar campos requeridos
-            if not all([name, quantity, category_id]):
-                flash('Por favor complete todos los campos requeridos.', 'danger')
-                return redirect(url_for('equipment.add_equipment'))
+            # Validar tipos de datos
+            try:
+                quantity = int(request.form['quantity'])
+                if quantity < 0:
+                    raise ValueError('La cantidad debe ser un número positivo')
+            except ValueError:
+                raise ValueError('La cantidad debe ser un número válido')
 
             try:
-                quantity = int(quantity)
-                unit_price = float(unit_price) if unit_price else 0.0
-                category_id = int(category_id)  # Convertir el ID a entero
+                unit_price = float(request.form['unit_price'])
+                if unit_price < 0:
+                    raise ValueError('El precio debe ser un número positivo')
             except ValueError:
-                flash('La cantidad y el precio deben ser números válidos.', 'danger')
-                return redirect(url_for('equipment.add_equipment'))
+                raise ValueError('El precio debe ser un número válido')
 
             # Verificar si ya existe un equipo con el mismo número de serie
-            if serial_number:
-                existing_equipment = Equipment.query.filter_by(serial_number=serial_number).first()
+            if request.form['serial_number']:
+                existing_equipment = Equipment.query.filter_by(
+                    serial_number=request.form['serial_number']
+                ).first()
                 if existing_equipment:
-                    flash('Ya existe un equipo con ese número de serie.', 'danger')
-                    return redirect(url_for('equipment.add_equipment'))
+                    raise ValueError('Ya existe un equipo con ese número de serie')
+
+            # Obtener o crear la categoría
+            category_name = request.form['category']
+            category = Category.query.filter_by(name=category_name).first()
+            if not category:
+                category = Category(name=category_name)
+                db.session.add(category)
+                db.session.flush()  # Para obtener el ID de la categoría
 
             # Crear nuevo equipo
             equipment = Equipment(
-                name=name,
-                description=description,
+                name=request.form['name'],
+                company=request.form['company'],
+                model=request.form['model'],
+                category_id=category.id,  # Usar el ID de la categoría
+                serial_number=request.form['serial_number'],
                 quantity=quantity,
                 available_quantity=quantity,
-                category_id=category_id,  # Asignar el ID de la categoría
-                creator_id=current_user.id,
-                company=company,
-                model=model,
-                serial_number=serial_number,
                 unit_price=unit_price,
-                notes=notes,
-                location=location,
-                status='En revisión'  # Estado inicial
+                location=request.form['location'],
+                notes=request.form.get('notes', ''),
+                creator_id=current_user.id,
+                status='En revisión'
             )
 
             # Procesar la imagen si se proporcionó una
             if 'image' in request.files:
                 file = request.files['image']
-                if file and allowed_file(file.filename):
+                if file and file.filename and allowed_file(file.filename):
                     filename = secure_filename(file.filename)
                     file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
                     equipment.image_filename = filename
 
             db.session.add(equipment)
             db.session.commit()
-            flash('Equipo agregado exitosamente.', 'success')
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': True,
+                    'message': 'Equipo agregado exitosamente',
+                    'redirect': url_for('equipment.my_equipment')
+                })
+            
+            flash('Equipo agregado exitosamente', 'success')
             return redirect(url_for('equipment.my_equipment'))
+
+        except ValueError as e:
+            db.session.rollback()
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False,
+                    'message': str(e)
+                })
+            flash(str(e), 'danger')
+            return render_template('add_equipment.html')
 
         except Exception as e:
             db.session.rollback()
-            flash(f'Error al agregar el equipo: {str(e)}', 'danger')
-            return redirect(url_for('equipment.add_equipment'))
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({
+                    'success': False,
+                    'message': f'Error inesperado: {str(e)}'
+                })
+            flash(f'Error inesperado: {str(e)}', 'danger')
+            return render_template('add_equipment.html')
 
-    # GET request - mostrar formulario
+    # GET request
+    categories = Category.query.order_by(Category.name).all()
     return render_template('add_equipment.html', categories=categories)
 
 @equipment.route('/equipment/<int:equipment_id>')
@@ -300,6 +321,12 @@ def get_distinct_values():
             query_result = db.session.query(User.username.distinct()).all()
         else:
             query_result = db.session.query(User.username.distinct()).filter(User.id == current_user.id).all()
+    elif field == 'category':
+        # Get distinct category names
+        if current_user.is_admin:
+            query_result = db.session.query(Category.name.distinct()).join(Equipment).all()
+        else:
+            query_result = db.session.query(Category.name.distinct()).join(Equipment).filter(Equipment.creator_id == current_user.id).all()
     else:
         # Get distinct values for other fields
         if current_user.is_admin:
@@ -330,74 +357,13 @@ def reviewed_equipment():
 
 @equipment.route('/rejected')
 @login_required
-@requires_admin
 def rejected_equipment():
-    # Get only rejected equipment
+    if not current_user.is_admin:
+        abort(403)
     equipment_list = Equipment.query.filter_by(status='Rechazado').order_by(Equipment.created_at.desc()).all()
-    
-    # For rejected view, only show the count of rejected items
     rejected_count = len(equipment_list)
-    stats = {
-        'total': rejected_count,  # Total is the same as rejected count
-        'pending': 0,  # Hide other stats
-        'reviewed': 0,
-        'published': 0,
-        'rejected': rejected_count  # Add rejected count
-    }
-    
-    return render_template('index.html', 
-                         equipment_list=equipment_list,
-                         stats=stats,
-                         title='Equipos Rechazados')
-
-@equipment.route('/published')
-@login_required
-def published_equipment():
-    filter_status = request.args.get('filter_status', 'Publicado')
-    
-    # Si el usuario es admin, puede ver todos los equipos
-    if current_user.is_admin:
-        if filter_status == 'all':
-            equipment_list = Equipment.query.all()
-        else:
-            equipment_list = Equipment.query.filter_by(status=filter_status).all()
-    else:
-        # Si no es admin, solo ve los equipos publicados
-        equipment_list = Equipment.query.filter_by(status='Publicado').all()
-    
-    # Calcular estadísticas
-    total_equipment = Equipment.query.count()
-    published_equipment = Equipment.query.filter_by(status='Publicado').count()
-    in_review_equipment = Equipment.query.filter_by(status='En revisión').count()
-    reviewed_equipment = Equipment.query.filter_by(status='Revisado').count()
-    borrowed_equipment = Equipment.query.filter(
-        Equipment.available_quantity < Equipment.quantity
-    ).count()
-    pending_transactions = Transaction.query.filter_by(status='Pendiente').count()
-    
-    stats = {
-        'total_equipment': total_equipment,
-        'published_equipment': published_equipment,
-        'in_review_equipment': in_review_equipment,
-        'reviewed_equipment': reviewed_equipment,
-        'borrowed_equipment': borrowed_equipment,
-        'pending_transactions': pending_transactions
-    }
-    
-    status_colors = {
-        'En revisión': 'warning',
-        'Revisado': 'info',
-        'Publicado': 'success',
-        'Rechazado': 'danger'
-    }
-    
-    title = 'Todos los Equipos' if filter_status == 'all' else f'Equipos {filter_status}'
-    
-    return render_template('index.html', 
-                         equipment_list=equipment_list,
-                         stats=stats,
-                         status_colors=status_colors,
-                         title=title)
+    stats = {'total': rejected_count, 'pending': 0, 'reviewed': 0, 'published': 0, 'rejected': rejected_count}
+    return render_template('index.html', equipment_list=equipment_list, stats=stats, title='Equipos Rechazados')
 
 @equipment.route('/my-equipment')
 @login_required
@@ -405,28 +371,46 @@ def my_equipment():
     equipment_list = Equipment.query.filter_by(creator_id=current_user.id).all()
     
     # Calcular estadísticas
-    total_equipment = Equipment.query.filter_by(creator_id=current_user.id).count()
-    available_equipment = Equipment.query.filter_by(
-        creator_id=current_user.id,
-        status='Publicado'
-    ).count()
-    borrowed_equipment = Equipment.query.filter(
-        Equipment.creator_id == current_user.id,
-        Equipment.available_quantity < Equipment.quantity
-    ).count()
-    pending_transactions = Transaction.query.filter(
-        (Transaction.seller_id == current_user.id) &
-        (Transaction.status == 'Pendiente')
-    ).count()
-    
     stats = {
-        'total_equipment': total_equipment,
-        'available_equipment': available_equipment,
-        'borrowed_equipment': borrowed_equipment,
-        'pending_transactions': pending_transactions
+        'total_equipment': Equipment.query.filter_by(creator_id=current_user.id).count(),
+        'status_counts': {
+            'En revisión': Equipment.query.filter_by(creator_id=current_user.id, status='En revisión').count(),
+            'Revisado': Equipment.query.filter_by(creator_id=current_user.id, status='Revisado').count(),
+            'Publicado': Equipment.query.filter_by(creator_id=current_user.id, status='Publicado').count(),
+            'Rechazado': Equipment.query.filter_by(creator_id=current_user.id, status='Rechazado').count(),
+            'Agotado': Equipment.query.filter_by(creator_id=current_user.id, status='Agotado').count()
+        }
     }
     
-    return render_template('index.html',
+    return render_template('equipment/my_equipment.html',
                          equipment_list=equipment_list,
                          stats=stats,
+                         show_actions=True,
                          title='Mis Equipos')
+
+@equipment.route('/get_equipment_list')
+@login_required
+def get_equipment_list():
+    status = request.args.get('status')
+    query = Equipment.query
+
+    if status:
+        query = query.filter_by(status=status)
+
+    # Aplicar filtros basados en el rol del usuario
+    if not current_user.is_admin:
+        query = query.filter(
+            db.or_(
+                Equipment.creator_id == current_user.id,
+                db.and_(
+                    Equipment.creator_id != current_user.id,
+                    Equipment.status == 'Publicado'
+                )
+            )
+        )
+
+    equipment_list = query.order_by(Equipment.created_at.desc()).all()
+    
+    return render_template('equipment/_equipment_list.html', 
+                         equipment_list=equipment_list,
+                         show_actions=True)

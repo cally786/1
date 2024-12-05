@@ -36,22 +36,18 @@ from app.routes.equipment_creation_routes import equipment_creation as equipment
 from app.routes.transaction_routes import transaction as transaction_blueprint
 from app.routes.notification_routes import notification as notification_blueprint
 from app.routes.reservation_routes import reservation as reservation_blueprint
-from app.routes.transaction_status_routes import transactions_status as transactions_status_blueprint
-from app.routes.transaction_approval_routes import transaction_approval as transaction_approval_blueprint
 from app.routes.admin_routes import admin as admin_blueprint
 from app.routes.published_routes import published as published_blueprint
 from app.routes.user_routes import user as user_blueprint
 from app.routes.chat_routes import chat as chat_blueprint
 
-app.register_blueprint(auth_blueprint)
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
 app.register_blueprint(main_blueprint)
 app.register_blueprint(equipment_blueprint)
 app.register_blueprint(equipment_creation_blueprint)
-app.register_blueprint(transaction_blueprint)
+app.register_blueprint(transaction_blueprint)  
 app.register_blueprint(notification_blueprint)
 app.register_blueprint(reservation_blueprint)
-app.register_blueprint(transactions_status_blueprint)
-app.register_blueprint(transaction_approval_blueprint)
 app.register_blueprint(admin_blueprint)
 app.register_blueprint(published_blueprint)
 app.register_blueprint(user_blueprint)
@@ -62,10 +58,9 @@ def init_db():
         db.create_all()
         
         # Verificar si existe el usuario administrador
-        admin_user = User.query.filter_by(username='admin').first()
+        admin_user = User.query.filter_by(email='admin@example.com').first()
         if not admin_user:
             admin_user = User(
-                username='admin',
                 email='admin@example.com',
                 password_hash=generate_password_hash('admin123'),
                 is_admin=True

@@ -14,11 +14,11 @@ def login():
         return redirect(url_for('main.index'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
         
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(email=email).first()
         
         if not user or not check_password_hash(user.password_hash, password):
             flash('Por favor verifica tus credenciales e intenta nuevamente.', 'error')
@@ -38,16 +38,16 @@ def register():
         return redirect(url_for('main.index'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
         
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(email=email).first()
         if user:
-            flash('El nombre de usuario ya existe.', 'error')
+            flash('El correo electrónico ya está registrado.', 'error')
             return redirect(url_for('auth.register'))
         
         new_user = User(
-            username=username,
+            email=email,
             password_hash=generate_password_hash(password),
             is_admin=False
         )

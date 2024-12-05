@@ -1,7 +1,7 @@
 // Función para actualizar el contador de chats pendientes (para admins)
 async function updatePendingChatsCount() {
     try {
-        const response = await fetch('/chats/pending/count');
+        const response = await fetch('/chat/pending/count');
         const data = await response.json();
         const badge = document.getElementById('pendingChatsCount');
         
@@ -19,7 +19,7 @@ async function updatePendingChatsCount() {
 // Función para actualizar el contador de mensajes no leídos (para usuarios)
 async function updateUnreadChatsCount() {
     try {
-        const response = await fetch('/chats/unread/count');
+        const response = await fetch('/chat/unread/count');
         const data = await response.json();
         const badge = document.getElementById('unreadChatsCount');
         

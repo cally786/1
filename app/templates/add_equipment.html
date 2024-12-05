@@ -9,7 +9,7 @@
                     <h4>Agregar Nuevo Equipo</h4>
                 </div>
                 <div class="card-body">
-                    <form id="equipmentForm" method="POST" enctype="multipart/form-data">
+                    <form id="equipmentForm" method="POST" action="{{ url_for('equipment.add_equipment') }}" enctype="multipart/form-data">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="company" class="form-label">Empresa</label>
@@ -27,12 +27,18 @@
                                 <input type="text" class="form-control" id="model" name="model" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="category_id" class="form-label">Categoría</label>
-                                <select class="form-select" id="category_id" name="category_id" required>
+                                <label for="category" class="form-label">Categoría</label>
+                                <select class="form-select" id="category" name="category" required>
                                     <option value="">Seleccione una categoría</option>
                                     {% for category in categories %}
-                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    <option value="{{ category.name }}">{{ category.name }}</option>
                                     {% endfor %}
+                                    <option value="Computadoras" {% if not categories %}selected{% endif %}>Computadoras</option>
+                                    <option value="Impresoras">Impresoras</option>
+                                    <option value="Redes">Redes</option>
+                                    <option value="Servidores">Servidores</option>
+                                    <option value="Almacenamiento">Almacenamiento</option>
+                                    <option value="Otros">Otros</option>
                                 </select>
                             </div>
                         </div>
@@ -141,7 +147,7 @@ document.getElementById('equipmentForm').addEventListener('submit', function(e) 
     const formData = new FormData(this);
     
     // Enviar la solicitud al servidor
-    fetch("{{ url_for('equipment_creation.add_equipment') }}", {
+    fetch("{{ url_for('equipment.add_equipment') }}", {
         method: 'POST',
         body: formData,
         headers: {

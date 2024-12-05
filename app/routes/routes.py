@@ -90,32 +90,23 @@ def get_distinct_values():
 
 @app.route('/in-review')
 @login_required
-@requires_admin
 def in_review_equipment():
     equipment_list = Equipment.query.filter_by(status='En revisión').all()
-    return render_template('index.html', equipment_list=equipment_list, status_colors={'En revisión': 'warning'})
+    return render_template('index.html', equipment_list=equipment_list, status_colors={'En revisión': 'warning'}, title='Equipos en Revisión')
 
 @app.route('/reviewed')
 @login_required
-@requires_admin
 def reviewed_equipment():
     equipment_list = Equipment.query.filter_by(status='Revisado').all()
-    return render_template('index.html', equipment_list=equipment_list, status_colors={'Revisado': 'info'})
+    return render_template('index.html', equipment_list=equipment_list, status_colors={'Revisado': 'info'}, title='Equipos Revisados')
 
 @app.route('/rejected')
 @login_required
-@requires_admin
 def rejected_equipment():
-    equipment_list = Equipment.query.filter_by(status='Rechazado').order_by(Equipment.created_at.desc()).all()
-    rejected_count = len(equipment_list)
-    stats = {'total': rejected_count, 'pending': 0, 'reviewed': 0, 'published': 0, 'rejected': rejected_count}
-    return render_template('index.html', equipment_list=equipment_list, stats=stats, title='Equipos Rechazados')
-
-@app.route('/published')
-@login_required
-def published_equipment():
-    equipment_list = Equipment.query.filter_by(status='Publicado').all()
-    return render_template('index.html', equipment_list=equipment_list, status_colors={'Publicado': 'success'}, title='Equipos Publicados')
+    if not current_user.is_admin:
+        abort(403)
+    equipment_list = Equipment.query.filter_by(status='Rechazado').all()
+    return render_template('index.html', equipment_list=equipment_list, status_colors={'Rechazado': 'danger'}, title='Equipos Rechazados')
 
 @app.route('/my-equipment')
 @login_required

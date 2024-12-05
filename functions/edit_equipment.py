@@ -42,26 +42,7 @@ def edit_equipment(equipment_id):
                 equipment.available_quantity = new_quantity
             else:
                 equipment.available_quantity = max(0, equipment.available_quantity + quantity_difference)
-            
-            # Actualizar el estado basado en la cantidad disponible
-            if equipment.available_quantity == 0 and equipment.status == 'Publicado':
-                equipment.status = 'Acabado'
-                # Notificar al vendedor
-                notification = Notification(
-                    recipient_id=equipment.creator_id,
-                    message=f'Tu producto "{equipment.name}" se ha marcado como agotado.',
-                    type='stock_empty'
-                )
-                db.session.add(notification)
-            elif equipment.available_quantity > 0 and equipment.status == 'Acabado':
-                equipment.status = 'Publicado'
-                # Notificar al vendedor
-                notification = Notification(
-                    recipient_id=equipment.creator_id,
-                    message=f'Tu producto "{equipment.name}" está nuevamente disponible con {equipment.available_quantity} unidades.',
-                    type='stock_available'
-                )
-                db.session.add(notification)
+                equipment.update_status_based_on_quantity()
             
             # Manejar el estado si se cambia manualmente
             if 'status' in request.form:

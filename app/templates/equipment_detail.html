@@ -35,16 +35,16 @@
             <div class="card mt-4">
                 <div class="card-body">
                     <h5 class="card-title">Reservar Equipo</h5>
-                    <form action="{{ url_for('reservation.reserve_equipment', equipment_id=equipment.id) }}" method="post">
+                    <form id="reservationForm" action="{{ url_for('transaction.reserve_equipment', equipment_id=equipment.id) }}" method="post">
                         <div class="form-group">
                             <label for="quantity">Cantidad a reservar:</label>
-                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" max="{{ equipment.available_quantity }}" required>
+                            <input type="number" class="form-control" id="quantity" name="quantity" min="1" max="{{ equipment.available_quantity }}" value="1" required>
                         </div>
                         <div class="form-group mt-2">
                             <p><strong>Precio por unidad:</strong> ${{ "%.2f"|format(equipment.unit_price) }}</p>
-                            <p><strong>Precio total:</strong> <span id="total-price">$0.00</span></p>
+                            <p><strong>Precio total:</strong> <span id="total-price">${{ "%.2f"|format(equipment.unit_price) }}</span></p>
                         </div>
-                        <button type="submit" class="btn btn-primary mt-3">Reservar</button>
+                        <button type="submit" class="btn btn-primary mt-3">Reservar <span id="quantity-text"></span></button>
                     </form>
                 </div>
             </div>
@@ -95,11 +95,57 @@
 </div>
 
 <script>
-document.getElementById('quantity').addEventListener('input', function() {
-    const quantity = this.value;
-    const unitPrice = {{ equipment.unit_price }};
+const form = document.getElementById('reservationForm');
+const quantityInput = document.getElementById('quantity');
+const totalPriceSpan = document.getElementById('total-price');
+const quantityTextSpan = document.getElementById('quantity-text');
+const unitPrice = {{ equipment.unit_price }};
+const maxQuantity = {{ equipment.available_quantity }};
+
+function updatePrice() {
+    const quantity = parseInt(quantityInput.value) || 0;
     const totalPrice = quantity * unitPrice;
-    document.getElementById('total-price').textContent = '$' + totalPrice.toFixed(2);
+    totalPriceSpan.textContent = '$' + totalPrice.toFixed(2);
+    quantityTextSpan.textContent = quantity > 1 ? `(${quantity} unidades)` : '';
+}
+
+quantityInput.addEventListener('input', function() {
+    let value = parseInt(this.value) || 0;
+    
+    // Asegurar que el valor esté dentro de los límites
+    if (value < 1) value = 1;
+    if (value > maxQuantity) value = maxQuantity;
+    
+    // Actualizar el input si el valor fue ajustado
+    if (value.toString() !== this.value) {
+        this.value = value;
+    }
+    
+    updatePrice();
 });
+
+form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const quantity = parseInt(quantityInput.value) || 0;
+    
+    if (quantity < 1 || quantity > maxQuantity) {
+        alert('Por favor ingresa una cantidad válida entre 1 y ' + maxQuantity);
+        return;
+    }
+    
+    // Agregar un campo oculto con la cantidad para asegurarnos
+    const hiddenQuantity = document.createElement('input');
+    hiddenQuantity.type = 'hidden';
+    hiddenQuantity.name = 'quantity_confirmation';
+    hiddenQuantity.value = quantity;
+    form.appendChild(hiddenQuantity);
+    
+    console.log('Enviando reserva - Cantidad:', quantity);
+    this.submit();
+});
+
+// Inicializar el precio total
+updatePrice();
 </script>
 {% endblock %}

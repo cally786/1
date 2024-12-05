@@ -64,9 +64,9 @@
                 <div>
                     <h4>{{ chat.title }}</h4>
                     <small class="text-muted">
-                        Chat con {{ chat.user.username }}
+                        Chat con {{ chat.user.email }}
                         {% if chat.admin %}
-                            - Admin: {{ chat.admin.username }}
+                            - Admin: {{ chat.admin.email }}
                         {% endif %}
                     </small>
                 </div>
@@ -85,7 +85,7 @@
                 <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
                     <div class="message-content">{{ message.content }}</div>
                     <div class="message-time">
-                        {{ message.sender.username }} - {{ message.created_at.strftime('%H:%M') }}
+                        {{ message.sender.email }} - {{ message.created_at.strftime('%H:%M') }}
                     </div>
                 </div>
             {% endfor %}
@@ -141,18 +141,20 @@ function sendMessage() {
     const formData = new FormData();
     formData.append('content', content);
     
+    // Deshabilitar el input y botón mientras se envía
+    messageInput.disabled = true;
+    sendButton.disabled = true;
+    
     fetch(window.location.href, {
         method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        },
         body: formData
     })
-    .then(response => {
+    .then(async response => {
+        const data = await response.json();
         if (!response.ok) {
-            throw new Error('Error en la respuesta del servidor');
+            throw new Error(data.message || 'Error en la respuesta del servidor');
         }
-        return response.json();
+        return data;
     })
     .then(data => {
         if (data.success) {
@@ -160,25 +162,20 @@ function sendMessage() {
             messageInput.value = '';
             
             // Agregar el mensaje a la lista
-            const messagesList = document.getElementById('messages-list');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message';
-            messageDiv.innerHTML = `
-                <strong>${data.message.sender}:</strong>
-                <p>${data.message.content}</p>
-                <small>${data.message.created_at}</small>
-            `;
-            messagesList.appendChild(messageDiv);
-            
-            // Scroll al final
-            messagesList.scrollTop = messagesList.scrollHeight;
+            addMessage(data.message, true);
         } else {
-            alert(data.message || 'Error al enviar el mensaje');
+            throw new Error(data.message || 'Error al enviar el mensaje');
         }
     })
     .catch(error => {
         console.error('Error:', error);
         alert('Error al enviar el mensaje: ' + error.message);
+    })
+    .finally(() => {
+        // Re-habilitar el input y botón
+        messageInput.disabled = false;
+        sendButton.disabled = false;
+        messageInput.focus();
     });
 }
 

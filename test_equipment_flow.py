@@ -31,24 +31,24 @@ def setup_test_data():
     """Configurar datos iniciales para la prueba"""
     try:
         # Crear usuarios de prueba
-        admin = User.query.filter_by(username='admin').first()
+        admin = User.query.filter_by(email='admin@test.com').first()
         if not admin:
-            admin = User(username='admin', is_admin=True)
+            admin = User(email='admin@test.com', is_admin=True)
             admin.set_password('admin123')
             db.session.add(admin)
             logger.info("Usuario admin creado")
 
-        seller = User.query.filter_by(username='vendedor').first()
+        seller = User.query.filter_by(email='seller@test.com').first()
         if not seller:
-            seller = User(username='vendedor', is_admin=False)
-            seller.set_password('vendedor123')
+            seller = User(email='seller@test.com', is_admin=False)
+            seller.set_password('seller123')
             db.session.add(seller)
             logger.info("Usuario vendedor creado")
 
-        buyer = User.query.filter_by(username='comprador').first()
+        buyer = User.query.filter_by(email='buyer@test.com').first()
         if not buyer:
-            buyer = User(username='comprador', is_admin=False)
-            buyer.set_password('comprador123')
+            buyer = User(email='buyer@test.com', is_admin=False)
+            buyer.set_password('buyer123')
             db.session.add(buyer)
             logger.info("Usuario comprador creado")
 

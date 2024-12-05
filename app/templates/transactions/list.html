@@ -86,17 +86,17 @@
                                         <i class="fas fa-eye"></i>
                                     </a>
 
-                                    {% if current_user.is_admin and transaction.status == 'Pendiente' %}
-                                    <button onclick="confirmarAccion('{{ url_for('transaction.approve_transaction', transaction_id=transaction.id) }}', 'aprobar')" 
-                                            class="btn btn-sm btn-outline-success" 
-                                            title="Aprobar">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                    <button onclick="confirmarAccion('{{ url_for('transaction.reject_transaction', transaction_id=transaction.id) }}', 'rechazar')" 
-                                            class="btn btn-sm btn-outline-danger" 
-                                            title="Rechazar">
-                                        <i class="fas fa-times"></i>
-                                    </button>
+                                    {% if transaction.status == 'Pendiente' and (current_user.is_admin or transaction.seller_id == current_user.id) %}
+                                    <form action="/transaction/transactions/{{ transaction.id }}/approve" method="POST" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-success" title="Aprobar">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                    </form>
+                                    <form action="/transaction/transactions/{{ transaction.id }}/reject" method="POST" style="display: inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Rechazar">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </form>
                                     {% endif %}
 
                                     {% if transaction.buyer_id == current_user.id and transaction.status == 'Pendiente' %}

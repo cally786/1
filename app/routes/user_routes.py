@@ -32,7 +32,7 @@ def toggle_admin(user_id):
     else:
         user.is_admin = not user.is_admin
         db.session.commit()
-        flash(f'Estado de administrador actualizado para {user.username}.', 'success')
+        flash(f'Estado de administrador actualizado para {user.email}.', 'success')
     return redirect(url_for('user.list_users'))
 
 @user.route('/add-user', methods=['GET', 'POST'])
@@ -40,20 +40,20 @@ def toggle_admin(user_id):
 @requires_admin
 def add_user():
     if request.method == 'POST':
-        username = request.form.get('username')
+        email = request.form.get('email')
         password = request.form.get('password')
         is_admin = request.form.get('is_admin') == 'on'
         
-        if not username or not password:
+        if not email or not password:
             flash('Por favor complete todos los campos.', 'danger')
             return redirect(url_for('user.add_user'))
         
-        if User.query.filter_by(username=username).first():
-            flash('El nombre de usuario ya existe.', 'danger')
+        if User.query.filter_by(email=email).first():
+            flash('El correo electrónico ya existe.', 'danger')
             return redirect(url_for('user.add_user'))
         
         try:
-            new_user = User(username=username, is_admin=is_admin)
+            new_user = User(email=email, is_admin=is_admin)
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
@@ -72,7 +72,7 @@ def add_user():
 def edit_user(user_id):
     user = User.query.get_or_404(user_id)
     
-    if user.username == 'admin':
+    if user.email == 'admin@admin.com':
         flash('No se puede editar el usuario admin.', 'danger')
         return redirect(url_for('user.list_users'))
     
@@ -105,7 +105,7 @@ def delete_user(user_id):
     
     user = User.query.get_or_404(user_id)
     
-    if user.username == 'admin':
+    if user.email == 'admin@admin.com':
         flash('No se puede eliminar el usuario admin.', 'danger')
         return redirect(url_for('user.list_users'))
     

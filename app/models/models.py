@@ -4,10 +4,12 @@ from app import db
 from flask_login import UserMixin
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import event
+from sqlalchemy import inspect
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(120), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -82,8 +84,43 @@ class Equipment(db.Model):
         if self.status not in ['En revisión', 'Rechazado']:
             if self.available_quantity == 0:
                 self.status = 'Agotado'
-            elif self.available_quantity > 0:
+                # Notificar al vendedor
+                notification = Notification(
+                    recipient_id=self.creator_id,
+                    message=f'Tu producto "{self.name}" se ha marcado como agotado.',
+                    type='stock_empty'
+                )
+                db.session.add(notification)
+            elif self.available_quantity > 0 and self.status == 'Agotado':
                 self.status = 'Publicado'
+                # Notificar al vendedor
+                notification = Notification(
+                    recipient_id=self.creator_id,
+                    message=f'Tu producto "{self.name}" está nuevamente disponible con {self.available_quantity} unidades.',
+                    type='stock_available'
+                )
+                db.session.add(notification)
+
+    @classmethod
+    def __declare_last__(cls):
+        @event.listens_for(cls, 'before_update')
+        def receive_before_update(mapper, connection, target):
+            state = inspect(target)
+            if state.attrs.available_quantity.history.has_changes():
+                target.update_status_based_on_quantity()
+
+    def process_transaction_completion(self, transaction):
+        """Procesa la finalización de una transacción"""
+        if transaction.status == 'Completado':
+            # Confirmar la reducción de cantidad
+            self.available_quantity = max(0, self.available_quantity - transaction.quantity)
+            self.update_status_based_on_quantity()
+        elif transaction.status == 'Rechazado':
+            # Devolver la cantidad reservada
+            self.available_quantity += transaction.quantity
+            self.update_status_based_on_quantity()
+        
+        db.session.commit()
 
     def check_quantity_status(self, requested_quantity):
         """
@@ -108,21 +145,6 @@ class Equipment(db.Model):
             return False, "Este equipo no está disponible para reserva"
             
         return True, "Cantidad disponible"
-
-    def process_transaction_completion(self, transaction):
-        """Procesa la finalización de una transacción"""
-        if transaction.status == 'Rechazado':
-            # Si la transacción es rechazada, restauramos la cantidad
-            self.available_quantity += transaction.quantity
-            self.update_status_based_on_quantity()
-        elif transaction.status == 'Completado':
-            # Si la transacción está completada, reducimos la cantidad
-            self.available_quantity -= transaction.quantity
-            if self.available_quantity == 0:
-                self.status = 'Agotado'
-            else:
-                self.update_status_based_on_quantity()
-        db.session.commit()
 
 class Transaction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -165,7 +187,9 @@ class Notification(db.Model):
             'info': 'info-circle',
             'warning': 'exclamation-triangle',
             'success': 'check-circle',
-            'error': 'times-circle'
+            'error': 'times-circle',
+            'stock_empty': 'exclamation-triangle',
+            'stock_available': 'check-circle'
         }
         return icons.get(self.type, 'bell')
 
@@ -178,6 +202,8 @@ class Notification(db.Model):
             'info': 'text-info',
             'warning': 'text-warning',
             'success': 'text-success',
-            'error': 'text-danger'
+            'error': 'text-danger',
+            'stock_empty': 'text-warning',
+            'stock_available': 'text-success'
         }
         return colors.get(self.type, 'text-info')

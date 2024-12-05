@@ -1,0 +1,266 @@
+<!-- Chat Bubble -->
+<div class="chat-bubble" id="chatBubble">
+    <button class="btn btn-primary rounded-circle chat-toggle" onclick="toggleChat()">
+        <i class="fas fa-comments"></i>
+        {% if current_user.is_admin %}
+            <span class="badge badge-danger" id="pendingChatsCount" style="display: {% if injected_functions.get_pending_chats_count() > 0 %}inline{% else %}none{% endif %}">
+                {{ injected_functions.get_pending_chats_count() }}
+            </span>
+        {% else %}
+            <span class="badge badge-danger" id="unreadChatsCount" style="display: {% if injected_functions.get_unread_messages_count() > 0 %}inline{% else %}none{% endif %}">
+                {{ injected_functions.get_unread_messages_count() }}
+            </span>
+        {% endif %}
+    </button>
+    
+    <div class="chat-panel" id="chatPanel" style="display: none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                {% if current_user.is_admin %}
+                <ul class="nav nav-tabs card-header-tabs flex-grow-1">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="pending-tab" data-bs-toggle="tab" href="#pendingChats" role="tab">
+                            Pendientes
+                            <span class="badge bg-danger" id="pendingCount">{{ injected_functions.get_pending_chats_count() }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="active-tab" data-bs-toggle="tab" href="#activeChats" role="tab">
+                            Activos
+                        </a>
+                    </li>
+                </ul>
+                {% else %}
+                <h6 class="mb-0">Mis Chats</h6>
+                {% endif %}
+                <button type="button" class="btn-close ms-2" onclick="toggleChat()"></button>
+            </div>
+            <div class="card-body">
+                <div class="tab-content">
+                    {% if current_user.is_admin %}
+                    <div class="tab-pane fade show active" id="pendingChats" role="tabpanel">
+                        {% for chat in injected_functions.get_pending_chats() %}
+                        <div class="chat-item mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Chat #{{ chat.id }}</strong>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-user"></i> {{ chat.user.username }}
+                                        <br>
+                                        <i class="fas fa-comment"></i> {{ chat.title }}
+                                    </div>
+                                </div>
+                                <a href="{{ url_for('chat.chat_messages', chat_id=chat.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye"></i> Ver
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No hay chats pendientes</p>
+                        {% endfor %}
+                    </div>
+                    <div class="tab-pane fade" id="activeChats" role="tabpanel">
+                        {% for chat in injected_functions.get_active_chats() %}
+                        <div class="chat-item mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Chat #{{ chat.id }}</strong>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-user"></i> {{ chat.user.username }}
+                                        <br>
+                                        <i class="fas fa-comment"></i> {{ chat.title }}
+                                    </div>
+                                </div>
+                                <div>
+                                    {% if chat.unread_count > 0 %}
+                                    <span class="badge bg-danger">{{ chat.unread_count }}</span>
+                                    {% endif %}
+                                    <a href="{{ url_for('chat.chat_messages', chat_id=chat.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No hay chats activos</p>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="tab-pane fade show active" id="myChats">
+                        {% for chat in injected_functions.get_active_chats() %}
+                        <div class="chat-item mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Chat #{{ chat.id }}</strong>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-comment"></i> {{ chat.title }}
+                                        <br>
+                                        <i class="fas fa-clock"></i> 
+                                        {% if chat.updated_at %}
+                                            {{ chat.updated_at.strftime('%d/%m/%Y %H:%M') }}
+                                        {% else %}
+                                            {{ chat.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div>
+                                    {% if chat.unread_count > 0 %}
+                                    <span class="badge bg-danger">{{ chat.unread_count }}</span>
+                                    {% endif %}
+                                    <a href="{{ url_for('chat.chat_messages', chat_id=chat.id) }}" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No tienes chats activos</p>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-footer text-center">
+                {% if not current_user.is_admin %}
+                <button class="btn btn-primary" onclick="showNewChatModal()">
+                    <i class="fas fa-plus"></i> Nuevo Chat
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para nuevo chat -->
+<div class="modal fade" id="newChatModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nuevo Chat</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="chatTitle">Título del Chat</label>
+                    <input type="text" class="form-control" id="chatTitle" placeholder="Ingrese el título del chat">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="createNewChat()">Crear</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleChat() {
+    const panel = document.getElementById('chatPanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function showNewChatModal() {
+    const modal = new bootstrap.Modal(document.getElementById('newChatModal'));
+    modal.show();
+}
+
+function createNewChat() {
+    const title = document.getElementById('chatTitle').value.trim();
+    if (!title) {
+        alert('Por favor ingrese un título para el chat');
+        return;
+    }
+
+    fetch('{{ url_for("chat.new_chat") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `title=${encodeURIComponent(title)}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = `/chats/${data.chat_id}/messages`;
+        } else {
+            alert(data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al crear el chat');
+    });
+}
+
+// Actualizar contadores cada 30 segundos
+setInterval(function() {
+    fetch('{{ url_for("chat.unread_count") }}')
+        .then(response => response.json())
+        .then(data => {
+            const unreadCount = document.getElementById('unreadChatsCount');
+            if (unreadCount) {
+                unreadCount.style.display = data.count > 0 ? 'inline' : 'none';
+                unreadCount.textContent = data.count;
+            }
+        });
+
+    fetch('{{ url_for("chat.pending_count") }}')
+        .then(response => response.json())
+        .then(data => {
+            const pendingCount = document.getElementById('pendingChatsCount');
+            if (pendingCount) {
+                pendingCount.style.display = data.count > 0 ? 'inline' : 'none';
+                pendingCount.textContent = data.count;
+            }
+            
+            const tabPendingCount = document.getElementById('pendingCount');
+            if (tabPendingCount) {
+                tabPendingCount.textContent = data.count;
+            }
+        });
+}, 30000);
+</script>
+
+<style>
+.chat-bubble {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.chat-toggle {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    position: relative;
+}
+
+.chat-toggle .badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+}
+
+.chat-panel {
+    position: absolute;
+    bottom: 60px;
+    right: 0;
+    width: 300px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.chat-item {
+    padding: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.chat-item:last-child {
+    border-bottom: none;
+}
+
+.chat-item:hover {
+    background-color: #f8f9fa;
+}
+</style>

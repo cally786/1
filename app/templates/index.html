@@ -2,64 +2,101 @@
 
 {% block content %}
 <div class="container">
-    <div class="row mb-4">
+    <div class="row mb-4 align-items-center">
         <div class="col">
-            <h2>Panel de Control</h2>
+            <h2 class="mb-0">Panel de Control</h2>
         </div>
         <div class="col text-end">
             <a href="{{ url_for('equipment.add_equipment') }}" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Agregar Equipo
+                <i class="fas fa-plus me-1"></i> Agregar Equipo
             </a>
         </div>
     </div>
 
     {% if current_user.is_admin %}
+    <!-- Estados de Equipos -->
+    <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Estados de Equipos</h5>
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Click para filtrar
+            </small>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <!-- Total -->
+            <button class="btn btn-light status-btn d-inline-flex align-items-center" data-status="">
+                <i class="fas fa-boxes me-2"></i>
+                Total
+                <span class="ms-2 badge rounded-pill bg-secondary">
+                    {{ stats.total_equipment }}
+                </span>
+            </button>
+
+            <!-- En revisión -->
+            <button class="btn btn-warning text-dark status-btn d-inline-flex align-items-center" data-status="En revisión">
+                <i class="fas fa-search me-2"></i>
+                En revisión
+                <span class="ms-2 badge rounded-pill bg-dark">
+                    {{ stats.status_counts.get('En revisión', 0) }}
+                </span>
+            </button>
+
+            <!-- Revisado -->
+            <button class="btn btn-info text-dark status-btn d-inline-flex align-items-center" data-status="Revisado">
+                <i class="fas fa-check me-2"></i>
+                Revisado
+                <span class="ms-2 badge rounded-pill bg-dark">
+                    {{ stats.status_counts.get('Revisado', 0) }}
+                </span>
+            </button>
+
+            <!-- Publicado -->
+            <button class="btn btn-success status-btn d-inline-flex align-items-center" data-status="Publicado">
+                <i class="fas fa-globe me-2"></i>
+                Publicado
+                <span class="ms-2 badge rounded-pill bg-light text-dark">
+                    {{ stats.status_counts.get('Publicado', 0) }}
+                </span>
+            </button>
+
+            <!-- Rechazado -->
+            <button class="btn btn-danger status-btn d-inline-flex align-items-center" data-status="Rechazado">
+                <i class="fas fa-times me-2"></i>
+                Rechazado
+                <span class="ms-2 badge rounded-pill bg-light text-dark">
+                    {{ stats.status_counts.get('Rechazado', 0) }}
+                </span>
+            </button>
+
+            <!-- Agotado -->
+            <button class="btn btn-secondary status-btn d-inline-flex align-items-center" data-status="Agotado">
+                <i class="fas fa-battery-empty me-2"></i>
+                Agotado
+                <span class="ms-2 badge rounded-pill bg-light text-dark">
+                    {{ stats.status_counts.get('Agotado', 0) }}
+                </span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Lista de Equipos -->
     <div class="row mb-4">
-        <div class="col-md-3">
-            <a href="{{ url_for('equipment.published_equipment', filter_status='all') }}" class="text-decoration-none">
-                <div class="card bg-primary text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">Total Equipos</h5>
-                        <p class="card-text display-4">{{ stats.total_equipment }}</p>
-                    </div>
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">Lista de Equipos</h5>
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{{ url_for('equipment.published_equipment', filter_status='En revisión') }}" class="text-decoration-none">
-                <div class="card bg-warning text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">En Revisión</h5>
-                        <p class="card-text display-4">{{ stats.in_review_equipment }}</p>
-                    </div>
+                <div id="equipment-list" class="card-body p-0">
+                    {% include 'equipment/_equipment_list.html' %}
                 </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{{ url_for('equipment.published_equipment', filter_status='Revisado') }}" class="text-decoration-none">
-                <div class="card bg-info text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">Revisados</h5>
-                        <p class="card-text display-4">{{ stats.reviewed_equipment }}</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="col-md-3">
-            <a href="{{ url_for('equipment.published_equipment', filter_status='Publicado') }}" class="text-decoration-none">
-                <div class="card bg-success text-white">
-                    <div class="card-body">
-                        <h5 class="card-title">Publicados</h5>
-                        <p class="card-text display-4">{{ stats.published_equipment }}</p>
-                    </div>
-                </div>
-            </a>
+            </div>
         </div>
     </div>
     {% endif %}
 
+    <!-- Panel de Estadísticas -->
     <div class="row">
-        <!-- Panel de Estadísticas -->
         <div class="col-md-4">
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-primary text-white">
@@ -115,7 +152,7 @@
                                 {% for transaction in pending_transactions %}
                                 <tr>
                                     <td>#{{ transaction.id }}</td>
-                                    <td>{{ transaction.equipment.name }}</td>
+                                    <td><a href="{{ url_for('transaction.transaction_detail', transaction_id=transaction.id) }}" class="text-decoration-none">{{ transaction.equipment.name }}</a></td>
                                     <td>{{ transaction.buyer.username }}</td>
                                     <td>
                                         <span class="badge {% if transaction.status == 'Pendiente' %}bg-warning{% elif transaction.status == 'Aprobado' %}bg-success{% else %}bg-danger{% endif %}">
@@ -123,16 +160,7 @@
                                         </span>
                                     </td>
                                     <td>{{ transaction.created_at.strftime('%d/%m/%Y') }}</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button class="btn btn-sm btn-success" onclick="updateTransactionStatus({{ transaction.id }}, 'Aprobado')">
-                                                <i class="fas fa-check"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" onclick="updateTransactionStatus({{ transaction.id }}, 'Rechazado')">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </td>
+                                    <td></td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -145,131 +173,120 @@
             </div>
         </div>
     </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">{{ title if title else 'Equipos Recientes' }}</h3>
-        </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Imagen</th>
-                            <th>Nombre</th>
-                            <th>Empresa</th>
-                            <th>Ubicación</th>
-                            <th>Categoría</th>
-                            <th>Estado</th>
-                            <th>Precio Unitario</th>
-                            <th>Fecha</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for equipment in equipment_list %}
-                        <tr>
-                            <td>
-                                {% if equipment.image_filename %}
-                                <img src="{{ url_for('static', filename='uploads/' + equipment.image_filename) }}" 
-                                     alt="Imagen del equipo" class="img-thumbnail" style="max-width: 50px;">
-                                {% else %}
-                                <span class="text-muted">Sin imagen</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ equipment.name }}</td>
-                            <td>{{ equipment.company }}</td>
-                            <td>{{ equipment.location }}</td>
-                            <td>{{ equipment.category.name if equipment.category else 'Sin categoría' }}</td>
-                            <td>
-                                {% set status_classes = {
-                                    'En revisión': 'warning',
-                                    'Revisado': 'info',
-                                    'Publicado': 'success',
-                                    'Rechazado': 'danger'
-                                } %}
-                                <span class="badge bg-{{ status_classes[equipment.status] }}">
-                                    {{ equipment.status }}
-                                </span>
-                            </td>
-                            <td>${{ "%.2f"|format(equipment.unit_price) }}</td>
-                            <td>{{ equipment.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>
-                                <div class="btn-group">
-                                    <a href="{{ url_for('equipment.equipment_detail', equipment_id=equipment.id) }}" 
-                                       class="btn btn-sm btn-info" title="Ver detalles">
-                                        <i class="fas fa-eye"></i> Ver
-                                    </a>
-                                    {% if current_user.is_admin %}
-                                    <a href="{{ url_for('equipment.edit_equipment', equipment_id=equipment.id) }}" 
-                                       class="btn btn-sm btn-warning" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button onclick="confirmarEliminar({{ equipment.id }})" 
-                                            class="btn btn-sm btn-danger" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 </div>
+{% endblock %}
+
+{% block styles %}
+<style>
+.status-btn {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    border: 2px solid transparent;
+}
+
+.status-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.status-btn.selected {
+    border-color: currentColor;
+    background-color: rgba(var(--status-rgb), 0.1);
+}
+
+/* Estilos para la tabla */
+.table {
+    margin-bottom: 0;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 1rem;
+}
+
+.table td {
+    padding: 1rem;
+    vertical-align: middle;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Estilos para los badges de estado en la tabla */
+.badge {
+    padding: 0.5em 0.8em;
+    font-weight: 500;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function confirmarEliminar(id) {
-    Swal.fire({
-        title: '¿Está seguro?',
-        text: "Esta acción no se puede deshacer",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.href = "{{ url_for('equipment.delete_equipment', equipment_id=0) }}".replace('0', id);
-        }
+document.addEventListener('DOMContentLoaded', function() {
+    const statusBtns = document.querySelectorAll('.status-btn');
+    
+    statusBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const status = this.dataset.status;
+            
+            if (this.classList.contains('selected')) {
+                this.classList.remove('selected');
+                loadEquipmentList('');
+            } else {
+                statusBtns.forEach(btn => btn.classList.remove('selected'));
+                this.classList.add('selected');
+                loadEquipmentList(status);
+            }
+        });
     });
+});
+
+function loadEquipmentList(status) {
+    const url = status ? 
+        `{{ url_for('equipment.get_equipment_list') }}?status=${encodeURIComponent(status)}` :
+        '{{ url_for('equipment.get_equipment_list') }}';
+        
+    fetch(url)
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('equipment-list').innerHTML = html;
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function confirmarEliminar(id) {
+    if (confirm('¿Estás seguro de que deseas eliminar este equipo?')) {
+        window.location.href = `/equipment/delete/${id}`;
+    }
 }
 
 function updateTransactionStatus(transactionId, status) {
-    if (!confirm(`¿Estás seguro de que deseas ${status === 'Aprobado' ? 'aprobar' : 'rechazar'} esta transacción?`)) {
-        return;
-    }
-
-    fetch(`/transactions/${transactionId}/update-status`, {
+    fetch(`/transaction/update_status/${transactionId}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
         },
         body: JSON.stringify({ status: status })
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Error en la respuesta del servidor');
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Recargar la página para mostrar los cambios
             location.reload();
         } else {
-            alert(data.error || 'Error al actualizar la transacción');
+            alert('Error al actualizar el estado de la transacción');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Error al actualizar la transacción. Por favor, intenta de nuevo.');
+        alert('Error al actualizar el estado de la transacción');
     });
 }
 </script>

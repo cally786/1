@@ -7,6 +7,7 @@ class Chat(db.Model):
     admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
     status = db.Column(db.String(20), default='Pendiente')  # Pendiente, Activo, Cerrado
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     closed_at = db.Column(db.DateTime, nullable=True)
     title = db.Column(db.String(100), nullable=False)
     
@@ -22,13 +23,27 @@ class Chat(db.Model):
         """Cierra el chat y registra la fecha de cierre"""
         self.status = 'Cerrado'
         self.closed_at = datetime.utcnow()
+        self.updated_at = datetime.utcnow()
         db.session.commit()
 
     def assign_admin(self, admin_id):
         """Asigna un admin al chat y lo marca como activo"""
         self.admin_id = admin_id
         self.status = 'Activo'
+        self.updated_at = datetime.utcnow()
         db.session.commit()
+
+    def add_message(self, sender_id, content):
+        """Agrega un mensaje al chat y actualiza la fecha de última actualización"""
+        message = ChatMessage(
+            chat_id=self.id,
+            sender_id=sender_id,
+            content=content
+        )
+        db.session.add(message)
+        self.updated_at = datetime.utcnow()
+        db.session.commit()
+        return message
 
 class ChatMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
