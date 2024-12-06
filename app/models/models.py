@@ -14,9 +14,15 @@ class User(UserMixin, db.Model):
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Campos opcionales adicionales
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
+    company = db.Column(db.String(100))
+    phone = db.Column(db.String(20))
+    
     # Relaciones
     notifications = db.relationship('Notification', backref='recipient', lazy=True,
-                                    foreign_keys='Notification.recipient_id')
+                                  foreign_keys='Notification.recipient_id')
     equipment_items = db.relationship('Equipment', back_populates='creator')
 
     def set_password(self, password):

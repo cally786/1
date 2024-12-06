@@ -63,27 +63,30 @@ def init_db():
             admin_user = User(
                 email='admin@example.com',
                 password_hash=generate_password_hash('admin123'),
-                is_admin=True
+                is_admin=True,
+                first_name='Admin',
+                last_name='System',
+                company='Sistema',
+                phone='N/A'
             )
             db.session.add(admin_user)
+            db.session.commit()
 
         # Crear categorías iniciales
         default_categories = [
-            {'name': 'Electrónicos', 'description': 'Equipos electrónicos y dispositivos'},
-            {'name': 'Herramientas', 'description': 'Herramientas y equipos de trabajo'},
-            {'name': 'Mobiliario', 'description': 'Muebles y equipamiento de oficina'},
-            {'name': 'Audiovisual', 'description': 'Equipos de audio y video'},
-            {'name': 'Deportivo', 'description': 'Equipamiento deportivo'}
+            'Computadoras',
+            'Impresoras',
+            'Monitores',
+            'Periféricos',
+            'Redes',
+            'Servidores',
+            'Software',
+            'Otros'
         ]
-
-        for cat_data in default_categories:
-            if not Category.query.filter_by(name=cat_data['name']).first():
-                category = Category(**cat_data)
+        
+        for category_name in default_categories:
+            if not Category.query.filter_by(name=category_name).first():
+                category = Category(name=category_name)
                 db.session.add(category)
-
-        try:
-            db.session.commit()
-            print("Base de datos inicializada correctamente")
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error al inicializar la base de datos: {str(e)}")
+        
+        db.session.commit()

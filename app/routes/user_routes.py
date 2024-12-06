@@ -44,8 +44,14 @@ def add_user():
         password = request.form.get('password')
         is_admin = request.form.get('is_admin') == 'on'
         
+        # Obtener campos opcionales
+        first_name = request.form.get('first_name')
+        last_name = request.form.get('last_name')
+        company = request.form.get('company')
+        phone = request.form.get('phone')
+        
         if not email or not password:
-            flash('Por favor complete todos los campos.', 'danger')
+            flash('Por favor complete todos los campos obligatorios.', 'danger')
             return redirect(url_for('user.add_user'))
         
         if User.query.filter_by(email=email).first():
@@ -53,7 +59,14 @@ def add_user():
             return redirect(url_for('user.add_user'))
         
         try:
-            new_user = User(email=email, is_admin=is_admin)
+            new_user = User(
+                email=email,
+                is_admin=is_admin,
+                first_name=first_name,
+                last_name=last_name,
+                company=company,
+                phone=phone
+            )
             new_user.set_password(password)
             db.session.add(new_user)
             db.session.commit()
@@ -77,21 +90,35 @@ def edit_user(user_id):
         return redirect(url_for('user.list_users'))
     
     if request.method == 'POST':
-        new_password = request.form.get('password')
-        is_admin = request.form.get('is_admin') == 'on'
+        # Verificar si el email ha cambiado y si ya existe
+        new_email = request.form.get('email')
+        if new_email != user.email and User.query.filter_by(email=new_email).first():
+            flash('El correo electrónico ya existe.', 'danger')
+            return redirect(url_for('user.edit_user', user_id=user_id))
         
         try:
-            # Actualizar contraseña solo si se proporcionó una nueva
+            # Actualizar campos obligatorios
+            user.email = new_email
+            
+            # Actualizar contraseña si se proporcionó una nueva
+            new_password = request.form.get('password')
             if new_password:
                 user.set_password(new_password)
             
-            user.is_admin = is_admin
+            # Actualizar campos opcionales
+            user.first_name = request.form.get('first_name')
+            user.last_name = request.form.get('last_name')
+            user.company = request.form.get('company')
+            user.phone = request.form.get('phone')
+            user.is_admin = request.form.get('is_admin') == 'on'
+            
             db.session.commit()
             flash('Usuario actualizado exitosamente.', 'success')
             return redirect(url_for('user.list_users'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al actualizar el usuario: {str(e)}', 'danger')
+            return redirect(url_for('user.edit_user', user_id=user_id))
     
     return render_template('edit_user.html', user=user)
 
